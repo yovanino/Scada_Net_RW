@@ -13,6 +13,7 @@ public static class ScadaNetServiceCollectionExtensions
         configure?.Invoke(options);
 
         services.AddSingleton(options);
+        services.AddSingleton<IDeviceRegistry>(_ => new DeviceRegistry(options.Devices));
         services.AddSingleton<IDiscoveryService, DiscoveryService>();
         return services;
     }

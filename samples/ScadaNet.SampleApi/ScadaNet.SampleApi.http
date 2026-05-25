@@ -1,6 +1,16 @@
 @ScadaNet.SampleApi_HostAddress = http://localhost:5298
 
-GET {{ScadaNet.SampleApi_HostAddress}}/weatherforecast/
+GET {{ScadaNet.SampleApi_HostAddress}}/
+Accept: application/json
+
+###
+
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices
+Accept: application/json
+
+###
+
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/discovery
 Accept: application/json
 
 ###

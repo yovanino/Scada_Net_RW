@@ -5,7 +5,15 @@ using ScadaNet.Runtime;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
-    .AddScadaNet()
+    .AddScadaNet(options =>
+    {
+        options.AddDevice(
+            name: "line1-plc",
+            driver: "ethernetip",
+            address: "192.168.0.10",
+            port: 44818,
+            timeout: TimeSpan.FromSeconds(2));
+    })
     .AddEtherNetIpDiscovery();
 
 var app = builder.Build();
@@ -13,8 +21,15 @@ var app = builder.Build();
 app.MapGet("/", () => Results.Ok(new
 {
     Name = "ScadaNet sample API",
-    Endpoints = new[] { "/discovery/ethernetip?address=192.168.0.10" }
+    Endpoints = new[]
+    {
+        "/scadanet/devices",
+        "/scadanet/devices/line1-plc/discovery",
+        "/discovery/ethernetip?address=192.168.0.10"
+    }
 }));
+
+app.MapScadaNetEndpoints();
 
 app.MapGet("/discovery/ethernetip", async (
     string address,

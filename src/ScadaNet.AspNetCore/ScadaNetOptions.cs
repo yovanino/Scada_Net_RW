@@ -1,16 +1,24 @@
+using ScadaNet.Runtime;
+
 namespace ScadaNet.AspNetCore;
 
 public sealed class ScadaNetOptions
 {
-    public IList<DeviceRegistration> Devices { get; } = [];
+    public IList<DeviceDefinition> Devices { get; } = [];
 
-    public void AddDevice(string name, string driver, string address)
+    public void AddDevice(
+        string name,
+        string driver,
+        string address,
+        int? port = null,
+        string? path = null,
+        TimeSpan? timeout = null)
     {
-        Devices.Add(new DeviceRegistration(name, driver, address));
+        Devices.Add(new DeviceDefinition(name, driver, address)
+        {
+            Port = port,
+            Path = path,
+            Timeout = timeout ?? TimeSpan.FromSeconds(3)
+        });
     }
 }
-
-public sealed record DeviceRegistration(
-    string Name,
-    string Driver,
-    string Address);
