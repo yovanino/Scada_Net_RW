@@ -4,6 +4,8 @@ namespace ScadaNet.AspNetCore;
 
 public sealed class ScadaNetOptions
 {
+    public const string SectionName = "ScadaNet";
+
     public IList<DeviceDefinition> Devices { get; } = [];
 
     public void AddDevice(

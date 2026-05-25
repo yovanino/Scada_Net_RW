@@ -5,15 +5,7 @@ using ScadaNet.Runtime;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
-    .AddScadaNet(options =>
-    {
-        options.AddDevice(
-            name: "line1-plc",
-            driver: "ethernetip",
-            address: "192.168.0.10",
-            port: 44818,
-            timeout: TimeSpan.FromSeconds(2));
-    })
+    .AddScadaNet(builder.Configuration)
     .AddEtherNetIpDiscovery();
 
 var app = builder.Build();
