@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\src\ScadaNet.Model\ScadaNet.Model.csproj" />
     <ProjectReference Include="..\..\src\ScadaNet.Protocols\ScadaNet.Protocols.csproj" />
     <ProjectReference Include="..\..\src\ScadaNet.EtherNetIp\ScadaNet.EtherNetIp.csproj" />
+    <ProjectReference Include="..\..\src\ScadaNet.Logix\ScadaNet.Logix.csproj" />
     <ProjectReference Include="..\..\src\ScadaNet.Transport\ScadaNet.Transport.csproj" />
     <ProjectReference Include="..\..\src\ScadaNet.Runtime\ScadaNet.Runtime.csproj" />
     <ProjectReference Include="..\..\src\ScadaNet.AspNetCore\ScadaNet.AspNetCore.csproj" />
