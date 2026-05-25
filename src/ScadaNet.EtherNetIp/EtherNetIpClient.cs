@@ -39,6 +39,18 @@ public sealed class EtherNetIpClient : IAsyncDisposable
         return response;
     }
 
+    public async ValueTask<IReadOnlyList<EtherNetIpIdentity>> ListIdentityAsync(
+        CancellationToken cancellationToken = default)
+    {
+        await _transport.ConnectAsync(cancellationToken).ConfigureAwait(false);
+
+        var request = ListIdentityCodec.EncodeRequest();
+        await _transport.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+        var packet = await ReceivePacketAsync(cancellationToken).ConfigureAwait(false);
+        return ListIdentityCodec.DecodeResponse(packet);
+    }
+
     public ValueTask DisposeAsync()
     {
         return _transport.DisposeAsync();
