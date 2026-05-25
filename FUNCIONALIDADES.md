@@ -1495,3 +1495,154 @@ Funcionalidades necesarias:
 - Si se generaran clases C# desde UDTs o solo mappers runtime.
 - Definicion del handshake estandar PLC-robot.
 - Definicion de responsabilidades entre API, ladder PLC y HMI.
+
+## MVP v0.1
+
+El MVP debe ser suficientemente pequeno para construirlo rapido, pero suficientemente representativo para validar la arquitectura real de la plataforma.
+
+Objetivo del MVP:
+
+- Probar la arquitectura por capas.
+- Validar comunicacion Ethernet real.
+- Tener una API usable desde ASP.NET Core.
+- Leer datos Allen-Bradley Logix.
+- Preparar el camino para UDTs sin implementar todo el ecosistema.
+- Tener base de runtime multi-dispositivo.
+- Evitar sobrecargar la primera version con todos los protocolos.
+
+### Incluido En MVP v0.1
+
+#### Proyectos Iniciales
+
+- `PlcNet.Core`
+- `PlcNet.Model`
+- `PlcNet.Transport`
+- `PlcNet.Protocols`
+- `PlcNet.EtherNetIp`
+- `PlcNet.Cip`
+- `PlcNet.Logix`
+- `PlcNet.Runtime`
+- `PlcNet.AspNetCore`
+- `PlcNet.Tests`
+
+#### Funcionalidades Core
+
+- Tipos base de errores.
+- `SignalRef`.
+- `SignalValue`.
+- `SignalQuality`.
+- `DeviceIdentity`.
+- `DeviceCapabilities`.
+- `IDeviceDriver`.
+- `IDeviceConnection`.
+- `IPlcRuntime`.
+- `CancellationToken` en operaciones publicas.
+- Timeouts configurables.
+
+#### Transporte
+
+- Cliente TCP asincronico.
+- Conexion por IP/puerto.
+- Envio/recepcion de bytes.
+- Timeout de conexion.
+- Timeout de operacion.
+- Cierre ordenado.
+
+#### EtherNet/IP + CIP
+
+- `RegisterSession`.
+- `UnregisterSession`.
+- Encapsulacion basica.
+- `ListIdentity` o lectura equivalente de identidad.
+- Resultado de identidad con vendor, product, revision y nombre.
+- Manejo basico de errores.
+
+#### Discovery Basico
+
+- Detectar EtherNet/IP en puerto 44818.
+- Detectar si responde identidad.
+- Devolver `DeviceDetectionResult`.
+- No escribir nada durante discovery.
+
+#### Logix Basico
+
+- Conectar a ControlLogix/CompactLogix por IP y path.
+- Leer tags simples.
+- Escribir tags simples controlados.
+- Tipos iniciales:
+  - `BOOL`.
+  - `DINT`.
+  - `REAL`.
+  - `STRING` si no complica demasiado la primera prueba.
+- Lectura multiple simple sin batching avanzado.
+- API publica `LogixClient`.
+
+#### Runtime Basico
+
+- Registro de dispositivos por nombre.
+- Obtener cliente por nombre.
+- Lectura de un signal.
+- Escritura de un signal.
+- Estado de salud simple por dispositivo.
+- Sin pooling avanzado todavia; una conexion persistente por dispositivo alcanza para validar.
+
+#### ASP.NET Core
+
+- `AddPlcNet`.
+- Configuracion desde `appsettings.json`.
+- Registro de dispositivos Logix.
+- Inyeccion de `IPlcRuntime`.
+- Health check basico.
+
+### Fuera Del MVP v0.1
+
+- UDT completo.
+- Escritura parcial de UDT.
+- Multi-service packet.
+- Fragmentacion avanzada.
+- Pool de multiples conexiones por dispositivo.
+- Scheduler avanzado.
+- Snapshot store avanzado.
+- Polling engine.
+- SignalR.
+- Modbus TCP.
+- OPC UA.
+- MQTT.
+- PROFINET.
+- Mitsubishi.
+- Omron.
+- Panasonic.
+- Siemens.
+- Beckhoff.
+- Yaskawa/Motoman.
+- Implicit messaging.
+
+### Criterios De Exito
+
+- La solucion compila.
+- Hay tests unitarios para codificacion binaria y modelos base.
+- Se puede registrar un dispositivo Logix por configuracion.
+- Se puede hacer discovery de una IP EtherNet/IP.
+- Se puede leer un tag `DINT`.
+- Se puede escribir un tag `DINT` en modo controlado.
+- Se puede consumir desde una API ASP.NET Core de ejemplo.
+- El diseno no bloquea agregar Modbus TCP como segundo driver.
+
+### MVP v0.2 Sugerido
+
+- Metadata de tags Logix.
+- Lectura de arrays.
+- Lectura de strings robusta.
+- Primer soporte de UDT dinamico read-only.
+- Snapshot store.
+- Polling engine simple.
+- Modbus TCP como segundo driver.
+
+### MVP v0.3 Sugerido
+
+- UDTs tipados.
+- Cache de metadata UDT.
+- Batching de lecturas Logix.
+- Health checks mas completos.
+- Metricas.
+- Ejemplo Blazor dashboard.
