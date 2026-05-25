@@ -3,6 +3,8 @@
   <ItemGroup>
     <ProjectReference Include="..\ScadaNet.Core\ScadaNet.Core.csproj" />
     <ProjectReference Include="..\ScadaNet.Transport\ScadaNet.Transport.csproj" />
+    <ProjectReference Include="..\ScadaNet.Protocols\ScadaNet.Protocols.csproj" />
+    <ProjectReference Include="..\ScadaNet.Model\ScadaNet.Model.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
