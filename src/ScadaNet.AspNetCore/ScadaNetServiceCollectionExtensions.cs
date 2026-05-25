@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using ScadaNet.Runtime;
 
 namespace ScadaNet.AspNetCore;
 
@@ -12,6 +13,7 @@ public static class ScadaNetServiceCollectionExtensions
         configure?.Invoke(options);
 
         services.AddSingleton(options);
+        services.AddSingleton<IDiscoveryService, DiscoveryService>();
         return services;
     }
 }
