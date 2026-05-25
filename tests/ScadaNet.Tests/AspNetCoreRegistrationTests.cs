@@ -22,10 +22,14 @@ public class AspNetCoreRegistrationTests
 
         var discovery = provider.GetRequiredService<IDiscoveryService>();
         var registry = provider.GetRequiredService<IDeviceRegistry>();
+        var connectionFactory = provider.GetRequiredService<IDeviceConnectionFactory>();
+        var runtime = provider.GetRequiredService<IPlcRuntime>();
         var drivers = provider.GetServices<IDeviceDriver>().ToArray();
 
         Assert.IsType<DiscoveryService>(discovery);
         Assert.IsType<DeviceRegistry>(registry);
+        Assert.IsType<DeviceConnectionFactory>(connectionFactory);
+        Assert.IsType<PlcRuntime>(runtime);
         Assert.Contains(drivers, driver => driver is EtherNetIpDiscoveryDriver);
     }
 
