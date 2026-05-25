@@ -2,6 +2,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ScadaNet.Core\ScadaNet.Core.csproj" />
+    <ProjectReference Include="..\ScadaNet.EtherNetIp\ScadaNet.EtherNetIp.csproj" />
     <ProjectReference Include="..\ScadaNet.Model\ScadaNet.Model.csproj" />
     <ProjectReference Include="..\ScadaNet.Runtime\ScadaNet.Runtime.csproj" />
   </ItemGroup>
