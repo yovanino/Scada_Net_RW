@@ -1,4 +1,7 @@
 <Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/ScadaNet.SampleApi/ScadaNet.SampleApi.csproj" />
+  </Folder>
   <Folder Name="/src/">
     <Project Path="src/ScadaNet.AspNetCore/ScadaNet.AspNetCore.csproj" />
     <Project Path="src/ScadaNet.Cip/ScadaNet.Cip.csproj" />

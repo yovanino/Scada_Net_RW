@@ -1,0 +1,6 @@
+@ScadaNet.SampleApi_HostAddress = http://localhost:5298
+
+GET {{ScadaNet.SampleApi_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
