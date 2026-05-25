@@ -23,6 +23,12 @@ La arquitectura debe quedar preparada para sumar otros protocolos industriales s
 
 La libreria estara orientada principalmente a uso desde APIs ASP.NET Core, MVC, Blazor Server y servicios backend, con foco en performance, pooling de dispositivos, cache de metadata y operaciones asincronicas.
 
+Nombre tecnico inicial del repositorio y namespaces:
+
+- Solucion: `ScadaNet.RW`.
+- Proyectos: `ScadaNet.*`.
+- El nombre `PlcNet` usado en este documento queda como referencia conceptual de modulos/capas y podra renombrarse completamente a `ScadaNet` a medida que avance la implementacion.
+
 ## Aplicacion Objetivo
 
 La primera aplicacion concreta sera una API industrial que formara parte de un sistema mayor tipo SCADA/MES liviano para control de produccion en tiempo real.

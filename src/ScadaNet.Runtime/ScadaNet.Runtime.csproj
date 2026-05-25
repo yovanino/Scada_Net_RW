@@ -1,0 +1,15 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\ScadaNet.Core\ScadaNet.Core.csproj" />
+    <ProjectReference Include="..\ScadaNet.Model\ScadaNet.Model.csproj" />
+    <ProjectReference Include="..\ScadaNet.Protocols\ScadaNet.Protocols.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+</Project>

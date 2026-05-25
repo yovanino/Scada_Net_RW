@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ScadaNet.AspNetCore/ScadaNet.AspNetCore.csproj" />
+    <Project Path="src/ScadaNet.Cip/ScadaNet.Cip.csproj" />
+    <Project Path="src/ScadaNet.Core/ScadaNet.Core.csproj" />
+    <Project Path="src/ScadaNet.EtherNetIp/ScadaNet.EtherNetIp.csproj" />
+    <Project Path="src/ScadaNet.Logix/ScadaNet.Logix.csproj" />
+    <Project Path="src/ScadaNet.Model/ScadaNet.Model.csproj" />
+    <Project Path="src/ScadaNet.Protocols/ScadaNet.Protocols.csproj" />
+    <Project Path="src/ScadaNet.Runtime/ScadaNet.Runtime.csproj" />
+    <Project Path="src/ScadaNet.Transport/ScadaNet.Transport.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ScadaNet.Tests/ScadaNet.Tests.csproj" />
+  </Folder>
+</Solution>
