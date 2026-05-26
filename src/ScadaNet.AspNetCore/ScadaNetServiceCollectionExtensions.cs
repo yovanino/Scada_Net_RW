@@ -32,6 +32,7 @@ public static class ScadaNetServiceCollectionExtensions
         IServiceCollection services,
         ScadaNetOptions options)
     {
+        services.AddLogging();
         services.AddSingleton(options);
         services.AddSingleton<IDeviceRegistry>(_ => new DeviceRegistry(options.Devices));
         services.AddSingleton<IDeviceConnectionFactory, DeviceConnectionFactory>();
@@ -39,6 +40,8 @@ public static class ScadaNetServiceCollectionExtensions
         services.AddSingleton<ISignalSnapshotStore, SignalSnapshotStore>();
         services.AddSingleton<IDiscoveryService, DiscoveryService>();
         services.AddSingleton<IPlcRuntime, PlcRuntime>();
+        services.AddSingleton<ISignalPollingService, SignalPollingService>();
+        services.AddHostedService<ScadaNetPollingHostedService>();
         return services;
     }
 }

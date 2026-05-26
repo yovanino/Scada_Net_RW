@@ -7,6 +7,7 @@ public sealed class ScadaNetOptions
     public const string SectionName = "ScadaNet";
 
     public IList<DeviceDefinition> Devices { get; } = [];
+    public IList<SignalPollingGroupDefinition> PollingGroups { get; } = [];
 
     public void AddDevice(
         string name,
@@ -22,5 +23,26 @@ public sealed class ScadaNetOptions
             Path = path,
             Timeout = timeout ?? TimeSpan.FromSeconds(3)
         });
+    }
+
+    public void AddPollingGroup(
+        string name,
+        string deviceName,
+        IEnumerable<string> addresses,
+        TimeSpan? interval = null)
+    {
+        var group = new SignalPollingGroupDefinition
+        {
+            Name = name,
+            DeviceName = deviceName,
+            Interval = interval ?? TimeSpan.FromSeconds(1)
+        };
+
+        foreach (var address in addresses)
+        {
+            group.Addresses.Add(address);
+        }
+
+        PollingGroups.Add(group);
     }
 }

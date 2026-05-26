@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using ScadaNet.AspNetCore;
 using ScadaNet.EtherNetIp;
 using ScadaNet.Logix;
@@ -26,7 +27,9 @@ public class AspNetCoreRegistrationTests
         var connectionFactory = provider.GetRequiredService<IDeviceConnectionFactory>();
         var connectionPool = provider.GetRequiredService<IDeviceConnectionPool>();
         var snapshots = provider.GetRequiredService<ISignalSnapshotStore>();
+        var polling = provider.GetRequiredService<ISignalPollingService>();
         var runtime = provider.GetRequiredService<IPlcRuntime>();
+        var hostedServices = provider.GetServices<IHostedService>().ToArray();
         var drivers = provider.GetServices<IDeviceDriver>().ToArray();
 
         Assert.IsType<DiscoveryService>(discovery);
@@ -34,7 +37,9 @@ public class AspNetCoreRegistrationTests
         Assert.IsType<DeviceConnectionFactory>(connectionFactory);
         Assert.IsType<DeviceConnectionPool>(connectionPool);
         Assert.IsType<SignalSnapshotStore>(snapshots);
+        Assert.IsType<SignalPollingService>(polling);
         Assert.IsType<PlcRuntime>(runtime);
+        Assert.Contains(hostedServices, service => service is ScadaNetPollingHostedService);
         Assert.Contains(drivers, driver => driver is EtherNetIpDiscoveryDriver);
     }
 
@@ -87,7 +92,12 @@ public class AspNetCoreRegistrationTests
             ["ScadaNet:Devices:0:Address"] = "192.168.0.10",
             ["ScadaNet:Devices:0:Port"] = "44818",
             ["ScadaNet:Devices:0:Path"] = "1,0",
-            ["ScadaNet:Devices:0:Timeout"] = "00:00:02"
+            ["ScadaNet:Devices:0:Timeout"] = "00:00:02",
+            ["ScadaNet:PollingGroups:0:Name"] = "line1-fast",
+            ["ScadaNet:PollingGroups:0:DeviceName"] = "line1-plc",
+            ["ScadaNet:PollingGroups:0:Interval"] = "00:00:01",
+            ["ScadaNet:PollingGroups:0:Addresses:0"] = "ProductionCounter",
+            ["ScadaNet:PollingGroups:0:Addresses:1"] = "Motor.Speed"
         });
 
         services.AddScadaNet(configuration);
@@ -102,5 +112,12 @@ public class AspNetCoreRegistrationTests
         Assert.Equal(44818, device.Port);
         Assert.Equal("1,0", device.Path);
         Assert.Equal(TimeSpan.FromSeconds(2), device.Timeout);
+
+        var options = provider.GetRequiredService<ScadaNetOptions>();
+        var group = Assert.Single(options.PollingGroups);
+        Assert.Equal("line1-fast", group.Name);
+        Assert.Equal("line1-plc", group.DeviceName);
+        Assert.Equal(TimeSpan.FromSeconds(1), group.Interval);
+        Assert.Equal(["ProductionCounter", "Motor.Speed"], group.Addresses);
     }
 }
