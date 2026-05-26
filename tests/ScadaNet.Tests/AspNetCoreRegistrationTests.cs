@@ -29,6 +29,7 @@ public class AspNetCoreRegistrationTests
         var snapshots = provider.GetRequiredService<ISignalSnapshotStore>();
         var pollingGroups = provider.GetRequiredService<IPollingGroupRegistry>();
         var pollingStatuses = provider.GetRequiredService<IPollingStatusStore>();
+        var pollingMonitor = provider.GetRequiredService<IPollingGroupMonitor>();
         var writeAudit = provider.GetRequiredService<IWriteAuditStore>();
         var health = provider.GetRequiredService<IDeviceHealthService>();
         var polling = provider.GetRequiredService<ISignalPollingService>();
@@ -43,6 +44,7 @@ public class AspNetCoreRegistrationTests
         Assert.IsType<SignalSnapshotStore>(snapshots);
         Assert.IsType<PollingGroupRegistry>(pollingGroups);
         Assert.IsType<PollingStatusStore>(pollingStatuses);
+        Assert.IsType<PollingGroupMonitor>(pollingMonitor);
         Assert.IsType<WriteAuditStore>(writeAudit);
         Assert.IsType<DeviceHealthService>(health);
         Assert.IsType<SignalPollingService>(polling);

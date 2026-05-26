@@ -280,6 +280,23 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             return Results.Ok(groups.Groups);
         });
 
+        group.MapGet("/polling/groups/summary", (IPollingGroupMonitor monitor) =>
+        {
+            return Results.Ok(monitor.GetAll());
+        });
+
+        group.MapGet("/polling/groups/{groupName}/summary", (
+            string groupName,
+            IPollingGroupMonitor monitor) =>
+        {
+            return monitor.TryGet(groupName, out var summary)
+                ? Results.Ok(summary)
+                : Results.NotFound(new
+                {
+                    Message = $"Polling group '{groupName}' is not registered."
+                });
+        });
+
         group.MapGet("/polling/groups/{groupName}", (
             string groupName,
             IPollingGroupRegistry groups) =>

@@ -42,6 +42,7 @@ public static class ScadaNetServiceCollectionExtensions
         services.AddSingleton<IDeviceConnectionPool, DeviceConnectionPool>();
         services.AddSingleton<ISignalSnapshotStore, SignalSnapshotStore>();
         services.AddSingleton<IPollingStatusStore, PollingStatusStore>();
+        services.AddSingleton<IPollingGroupMonitor, PollingGroupMonitor>();
         services.AddSingleton<IWriteAuditStore, WriteAuditStore>();
         services.AddSingleton<IDeviceHealthService, DeviceHealthService>();
         services.AddSingleton<IDiscoveryService, DiscoveryService>();
