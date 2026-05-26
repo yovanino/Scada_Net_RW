@@ -8,16 +8,16 @@ public sealed class ScadaNetPollingHostedService : BackgroundService
 {
     private static readonly TimeSpan TickInterval = TimeSpan.FromMilliseconds(250);
 
-    private readonly ScadaNetOptions _options;
+    private readonly IPollingGroupRegistry _groups;
     private readonly ISignalPollingService _polling;
     private readonly ILogger<ScadaNetPollingHostedService> _logger;
 
     public ScadaNetPollingHostedService(
-        ScadaNetOptions options,
+        IPollingGroupRegistry groups,
         ISignalPollingService polling,
         ILogger<ScadaNetPollingHostedService> logger)
     {
-        _options = options;
+        _groups = groups;
         _polling = polling;
         _logger = logger;
     }
@@ -30,7 +30,7 @@ public sealed class ScadaNetPollingHostedService : BackgroundService
         {
             var now = DateTimeOffset.UtcNow;
 
-            foreach (var group in _options.PollingGroups.Where(group => group.Enabled))
+            foreach (var group in _groups.Groups.Where(group => group.Enabled))
             {
                 if (!ShouldRun(group, now, lastRuns))
                 {

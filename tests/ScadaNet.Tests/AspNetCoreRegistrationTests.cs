@@ -27,6 +27,7 @@ public class AspNetCoreRegistrationTests
         var connectionFactory = provider.GetRequiredService<IDeviceConnectionFactory>();
         var connectionPool = provider.GetRequiredService<IDeviceConnectionPool>();
         var snapshots = provider.GetRequiredService<ISignalSnapshotStore>();
+        var pollingGroups = provider.GetRequiredService<IPollingGroupRegistry>();
         var pollingStatuses = provider.GetRequiredService<IPollingStatusStore>();
         var writeAudit = provider.GetRequiredService<IWriteAuditStore>();
         var health = provider.GetRequiredService<IDeviceHealthService>();
@@ -40,6 +41,7 @@ public class AspNetCoreRegistrationTests
         Assert.IsType<DeviceConnectionFactory>(connectionFactory);
         Assert.IsType<DeviceConnectionPool>(connectionPool);
         Assert.IsType<SignalSnapshotStore>(snapshots);
+        Assert.IsType<PollingGroupRegistry>(pollingGroups);
         Assert.IsType<PollingStatusStore>(pollingStatuses);
         Assert.IsType<WriteAuditStore>(writeAudit);
         Assert.IsType<DeviceHealthService>(health);
@@ -143,5 +145,9 @@ public class AspNetCoreRegistrationTests
         Assert.Equal("line1-plc", group.DeviceName);
         Assert.Equal(TimeSpan.FromSeconds(1), group.Interval);
         Assert.Equal(["ProductionCounter", "Motor.Speed"], group.Addresses);
+
+        var pollingGroups = provider.GetRequiredService<IPollingGroupRegistry>();
+        Assert.True(pollingGroups.TryGet("LINE1-FAST", out var registeredGroup));
+        Assert.Equal("line1-plc", registeredGroup.DeviceName);
     }
 }
