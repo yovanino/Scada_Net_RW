@@ -8,5 +8,6 @@ public enum LogixDataTypeCode : ushort
     Dint = 0x00C4,
     Lint = 0x00C5,
     Real = 0x00CA,
+    LReal = 0x00CB,
     String = 0x02A0
 }

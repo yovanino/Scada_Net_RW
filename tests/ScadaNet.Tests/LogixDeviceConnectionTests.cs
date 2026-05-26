@@ -89,6 +89,22 @@ public class LogixDeviceConnectionTests
     }
 
     [Fact]
+    public async Task WriteAsync_uses_explicit_lreal_logix_data_type()
+    {
+        var client = new FakeLogixClient(readValue: null);
+        await using var connection = new LogixDeviceConnection("line1-plc", client);
+
+        await connection.WriteAsync(
+            new SignalRef("line1-plc", "PreciseSetpoint"),
+            1.25d,
+            "LReal");
+
+        Assert.Equal("PreciseSetpoint", client.LastWriteTag);
+        Assert.Equal(LogixDataTypeCode.LReal, client.LastWriteType);
+        Assert.Equal(1.25d, client.LastWriteValue);
+    }
+
+    [Fact]
     public async Task ReadArrayAsync_reads_tag_array_and_returns_signal_value()
     {
         var client = new FakeLogixClient(readValue: null)
@@ -164,6 +180,21 @@ public class LogixDeviceConnectionTests
         Assert.Equal("Speeds", client.LastWriteTag);
         Assert.Equal(LogixDataTypeCode.Real, client.LastWriteType);
         Assert.Equal([1, 2, 3], Assert.IsAssignableFrom<IEnumerable<object?>>(client.LastWriteValue));
+    }
+
+    [Fact]
+    public async Task WriteArrayAsync_uses_explicit_lreal_logix_data_type()
+    {
+        var client = new FakeLogixClient(readValue: null);
+        await using var connection = new LogixDeviceConnection("line1-plc", client);
+
+        await connection.WriteArrayAsync(
+            new SignalRef("line1-plc", "PreciseValues"),
+            [1, 2, 3],
+            "LReal");
+
+        Assert.Equal("PreciseValues", client.LastWriteTag);
+        Assert.Equal(LogixDataTypeCode.LReal, client.LastWriteType);
     }
 
     [Fact]

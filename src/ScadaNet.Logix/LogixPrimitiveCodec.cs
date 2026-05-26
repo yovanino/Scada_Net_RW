@@ -17,6 +17,7 @@ public static class LogixPrimitiveCodec
             LogixDataTypeCode.Dint => EncodeDint(Convert.ToInt32(value)),
             LogixDataTypeCode.Lint => EncodeLint(Convert.ToInt64(value)),
             LogixDataTypeCode.Real => EncodeReal(Convert.ToSingle(value)),
+            LogixDataTypeCode.LReal => EncodeLReal(Convert.ToDouble(value)),
             LogixDataTypeCode.String => EncodeString((string)value!),
             _ => throw new NotSupportedException($"Logix type '{type}' is not supported.")
         };
@@ -33,6 +34,8 @@ public static class LogixPrimitiveCodec
             LogixDataTypeCode.Lint => BinaryPrimitives.ReadInt64LittleEndian(data),
             LogixDataTypeCode.Real => BitConverter.Int32BitsToSingle(
                 BinaryPrimitives.ReadInt32LittleEndian(data)),
+            LogixDataTypeCode.LReal => BitConverter.Int64BitsToDouble(
+                BinaryPrimitives.ReadInt64LittleEndian(data)),
             LogixDataTypeCode.String => DecodeString(data),
             _ => throw new NotSupportedException($"Logix type '{type}' is not supported.")
         };
@@ -128,6 +131,13 @@ public static class LogixPrimitiveCodec
         return data;
     }
 
+    private static byte[] EncodeLReal(double value)
+    {
+        var data = new byte[sizeof(double)];
+        BinaryPrimitives.WriteInt64LittleEndian(data, BitConverter.DoubleToInt64Bits(value));
+        return data;
+    }
+
     private static byte[] EncodeString(string value)
     {
         if (!AsciiOnly(value))
@@ -175,6 +185,7 @@ public static class LogixPrimitiveCodec
             LogixDataTypeCode.Dint => sizeof(int),
             LogixDataTypeCode.Lint => sizeof(long),
             LogixDataTypeCode.Real => sizeof(float),
+            LogixDataTypeCode.LReal => sizeof(double),
             LogixDataTypeCode.String => sizeof(int) + LogixStringMaxLength,
             _ => null
         };

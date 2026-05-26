@@ -125,6 +125,31 @@ public class LogixPrimitiveCodecTests
     }
 
     [Fact]
+    public void Encode_and_decode_lreal_little_endian()
+    {
+        var encoded = LogixPrimitiveCodec.Encode(LogixDataTypeCode.LReal, 12.5d);
+        var decoded = LogixPrimitiveCodec.Decode(LogixDataTypeCode.LReal, encoded);
+
+        Assert.Equal([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x29, 0x40], encoded);
+        Assert.Equal(12.5d, decoded);
+    }
+
+    [Fact]
+    public void EncodeMany_encodes_lreal_values()
+    {
+        var encoded = LogixPrimitiveCodec.EncodeMany(
+            LogixDataTypeCode.LReal,
+            [1.0d, 2.0d]);
+
+        Assert.Equal(
+            [
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x40
+            ],
+            encoded);
+    }
+
+    [Fact]
     public void Encode_and_decode_logix_string()
     {
         var encoded = LogixPrimitiveCodec.Encode(LogixDataTypeCode.String, "RUN");
