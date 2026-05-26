@@ -5,5 +5,8 @@ public sealed record DeviceConnectionPoolStatus(
     bool HasConnection,
     bool IsInUse,
     long RentCount,
+    long FailedRentCount,
     DateTimeOffset? ConnectedAt,
-    DateTimeOffset? LastRentedAt);
+    DateTimeOffset? LastRentedAt,
+    DateTimeOffset? LastFailureAt,
+    string? LastError);

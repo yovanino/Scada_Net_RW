@@ -35,6 +35,14 @@ public sealed class DeviceConnectionPool : IDeviceConnectionPool, IAsyncDisposab
 
             return new DeviceConnectionLease(entry);
         }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            entry.FailedRentCount++;
+            entry.LastFailureAt = DateTimeOffset.UtcNow;
+            entry.LastError = ex.Message;
+            entry.Lock.Release();
+            throw;
+        }
         catch
         {
             entry.Lock.Release();
@@ -74,8 +82,11 @@ public sealed class DeviceConnectionPool : IDeviceConnectionPool, IAsyncDisposab
                 entry.Connection is not null,
                 entry.Lock.CurrentCount == 0,
                 entry.RentCount,
+                entry.FailedRentCount,
                 entry.ConnectedAt,
-                entry.LastRentedAt))
+                entry.LastRentedAt,
+                entry.LastFailureAt,
+                entry.LastError))
             .OrderBy(status => status.DeviceName, StringComparer.OrdinalIgnoreCase)
             .ToArray();
     }
@@ -98,6 +109,9 @@ public sealed class DeviceConnectionPool : IDeviceConnectionPool, IAsyncDisposab
         public DateTimeOffset? ConnectedAt { get; set; }
         public DateTimeOffset? LastRentedAt { get; set; }
         public long RentCount { get; set; }
+        public long FailedRentCount { get; set; }
+        public DateTimeOffset? LastFailureAt { get; set; }
+        public string? LastError { get; set; }
     }
 
     private sealed class DeviceConnectionLease : IDeviceConnectionLease
