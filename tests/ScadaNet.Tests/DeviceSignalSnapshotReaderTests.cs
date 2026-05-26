@@ -1,0 +1,73 @@
+using ScadaNet.Model;
+using ScadaNet.Runtime;
+
+namespace ScadaNet.Tests;
+
+public class DeviceSignalSnapshotReaderTests
+{
+    [Fact]
+    public void TryGet_returns_named_snapshot_with_latest_value()
+    {
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        device.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "production-counter",
+            Address = "ProductionCounter",
+            DataType = "DINT",
+            Unit = "parts",
+            Description = "Good parts counter"
+        });
+        var store = new SignalSnapshotStore();
+        store.Update(new SignalValue(
+            new SignalRef("line1-plc", "ProductionCounter"),
+            123,
+            SignalQuality.Good,
+            DateTimeOffset.UtcNow));
+        var reader = new DeviceSignalSnapshotReader(new DeviceRegistry([device]), store);
+
+        var found = reader.TryGet("LINE1-PLC", "PRODUCTION-COUNTER", out var snapshot);
+
+        Assert.True(found);
+        Assert.Equal("production-counter", snapshot.Name);
+        Assert.Equal("ProductionCounter", snapshot.Address);
+        Assert.Equal("DINT", snapshot.DataType);
+        Assert.Equal("parts", snapshot.Unit);
+        Assert.Equal("Good parts counter", snapshot.Description);
+        Assert.True(snapshot.HasValue);
+        Assert.Equal(123, snapshot.Value?.Value);
+    }
+
+    [Fact]
+    public void TryGetDeviceSnapshots_returns_catalog_items_without_values()
+    {
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        device.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "speed",
+            Address = "Motor.Speed"
+        });
+        var reader = new DeviceSignalSnapshotReader(
+            new DeviceRegistry([device]),
+            new SignalSnapshotStore());
+
+        var found = reader.TryGetDeviceSnapshots("line1-plc", out var snapshots);
+
+        Assert.True(found);
+        var snapshot = Assert.Single(snapshots);
+        Assert.Equal("speed", snapshot.Name);
+        Assert.False(snapshot.HasValue);
+        Assert.Null(snapshot.Value);
+    }
+
+    [Fact]
+    public void TryGet_returns_false_for_unknown_signal()
+    {
+        var reader = new DeviceSignalSnapshotReader(
+            new DeviceRegistry([new DeviceDefinition("line1-plc", "fake", "127.0.0.1")]),
+            new SignalSnapshotStore());
+
+        var found = reader.TryGet("line1-plc", "missing", out _);
+
+        Assert.False(found);
+    }
+}

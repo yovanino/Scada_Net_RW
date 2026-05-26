@@ -388,6 +388,31 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             return Results.Ok(snapshots.GetDeviceSnapshots(name));
         });
 
+        group.MapGet("/devices/{name}/signals/snapshot-named", (
+            string name,
+            IDeviceSignalSnapshotReader snapshots) =>
+        {
+            return snapshots.TryGetDeviceSnapshots(name, out var values)
+                ? Results.Ok(values)
+                : Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
+        });
+
+        group.MapGet("/devices/{name}/signals/{signalName}/snapshot", (
+            string name,
+            string signalName,
+            IDeviceSignalSnapshotReader snapshots) =>
+        {
+            return snapshots.TryGet(name, signalName, out var value)
+                ? Results.Ok(value)
+                : Results.NotFound(new
+                {
+                    Message = $"Signal '{signalName}' is not registered for device '{name}'."
+                });
+        });
+
         group.MapGet("/devices/{name}/signals/snapshot/{address}", (
             string name,
             string address,
