@@ -83,18 +83,19 @@ Accept: application/json
 
 ###
 
-GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/motor-speed/read-array?count=10
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/speed-history/read-array
 Accept: application/json
 
 ###
 
-POST {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/reset-command/write-array
+POST {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/recipe-values/write-array
 Content-Type: application/json
 
 {
   "values": [
-    true,
-    false
+    12.5,
+    15.0,
+    9.25
   ]
 }
 

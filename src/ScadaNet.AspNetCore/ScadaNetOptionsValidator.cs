@@ -78,6 +78,11 @@ public static class ScadaNetOptionsValidator
                 {
                     errors.Add($"Device '{device.Name}' contains signal address '{signal.Address}' more than once.");
                 }
+
+                if (signal.ElementCount <= 0)
+                {
+                    errors.Add($"Device '{device.Name}' signal '{signal.Name}' element count must be greater than zero.");
+                }
             }
         }
 

@@ -69,6 +69,8 @@ public sealed class ScadaNetOptions
         string? dataType = null,
         string? unit = null,
         string? description = null,
+        bool isArray = false,
+        ushort? elementCount = null,
         bool writable = false)
     {
         var device = Devices.FirstOrDefault(device => string.Equals(
@@ -88,6 +90,8 @@ public sealed class ScadaNetOptions
             DataType = dataType,
             Unit = unit,
             Description = description,
+            IsArray = isArray,
+            ElementCount = elementCount,
             Writable = writable
         });
     }

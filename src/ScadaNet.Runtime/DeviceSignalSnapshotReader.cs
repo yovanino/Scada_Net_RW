@@ -61,6 +61,8 @@ public sealed class DeviceSignalSnapshotReader : IDeviceSignalSnapshotReader
             signal.DataType,
             signal.Unit,
             signal.Description,
+            signal.IsArray,
+            signal.ElementCount,
             signal.Writable,
             hasValue,
             hasValue ? value : null);

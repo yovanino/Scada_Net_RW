@@ -104,4 +104,23 @@ public class ScadaNetOptionsValidatorTests
 
         Assert.Contains(error.Errors, item => item.Contains("references unknown signal 'missing'"));
     }
+
+    [Fact]
+    public void Validate_rejects_zero_signal_element_count()
+    {
+        var options = new ScadaNetOptions();
+
+        options.AddDevice("line1-plc", "logix", "192.168.0.10");
+        options.AddSignal(
+            "line1-plc",
+            "history",
+            "History",
+            isArray: true,
+            elementCount: 0);
+
+        var error = Assert.Throws<ScadaNetOptionsValidationException>(() =>
+            ScadaNetOptionsValidator.Validate(options));
+
+        Assert.Contains(error.Errors, item => item.Contains("element count must be greater than zero"));
+    }
 }

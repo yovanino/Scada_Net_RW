@@ -7,5 +7,7 @@ public sealed record DeviceSignalDefinition
     public string? DataType { get; init; }
     public string? Unit { get; init; }
     public string? Description { get; init; }
+    public bool IsArray { get; init; }
+    public ushort? ElementCount { get; init; }
     public bool Writable { get; init; }
 }

@@ -270,7 +270,7 @@ public static class ScadaNetEndpointRouteBuilderExtensions
         group.MapGet("/devices/{name}/signals/{signalName}/read-array", async (
             string name,
             string signalName,
-            ushort count,
+            ushort? count,
             IDeviceSignalResolver signals,
             IPlcRuntime runtime,
             CancellationToken cancellationToken) =>
@@ -283,11 +283,20 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                 });
             }
 
+            var elementCount = count ?? resolution.Definition.ElementCount;
+            if (!elementCount.HasValue)
+            {
+                return Results.BadRequest(new
+                {
+                    Message = $"Signal '{signalName}' requires a count query value or configured element count."
+                });
+            }
+
             try
             {
                 var value = await runtime.ReadArrayAsync(
                         resolution.Signal,
-                        count,
+                        elementCount.Value,
                         cancellationToken)
                     .ConfigureAwait(false);
 

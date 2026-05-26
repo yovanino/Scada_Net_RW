@@ -128,6 +128,8 @@ public class AspNetCoreRegistrationTests
             ["ScadaNet:Devices:0:Signals:0:DataType"] = "DINT",
             ["ScadaNet:Devices:0:Signals:0:Unit"] = "parts",
             ["ScadaNet:Devices:0:Signals:0:Description"] = "Good parts counter",
+            ["ScadaNet:Devices:0:Signals:0:IsArray"] = "true",
+            ["ScadaNet:Devices:0:Signals:0:ElementCount"] = "10",
             ["ScadaNet:Devices:0:Signals:0:Writable"] = "false",
             ["ScadaNet:PollingGroups:0:Name"] = "line1-fast",
             ["ScadaNet:PollingGroups:0:DeviceName"] = "line1-plc",
@@ -157,6 +159,8 @@ public class AspNetCoreRegistrationTests
         Assert.Equal("DINT", signal.DataType);
         Assert.Equal("parts", signal.Unit);
         Assert.Equal("Good parts counter", signal.Description);
+        Assert.True(signal.IsArray);
+        Assert.Equal((ushort)10, signal.ElementCount);
         Assert.False(signal.Writable);
 
         var options = provider.GetRequiredService<ScadaNetOptions>();

@@ -15,7 +15,9 @@ public class DeviceSignalSnapshotReaderTests
             Address = "ProductionCounter",
             DataType = "DINT",
             Unit = "parts",
-            Description = "Good parts counter"
+            Description = "Good parts counter",
+            IsArray = true,
+            ElementCount = 10
         });
         var store = new SignalSnapshotStore();
         store.Update(new SignalValue(
@@ -33,6 +35,8 @@ public class DeviceSignalSnapshotReaderTests
         Assert.Equal("DINT", snapshot.DataType);
         Assert.Equal("parts", snapshot.Unit);
         Assert.Equal("Good parts counter", snapshot.Description);
+        Assert.True(snapshot.IsArray);
+        Assert.Equal((ushort)10, snapshot.ElementCount);
         Assert.True(snapshot.HasValue);
         Assert.Equal(123, snapshot.Value?.Value);
     }
