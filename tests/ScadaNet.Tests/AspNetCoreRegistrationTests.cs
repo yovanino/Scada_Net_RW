@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ScadaNet.AspNetCore;
 using ScadaNet.EtherNetIp;
+using ScadaNet.Logix;
 using ScadaNet.Protocols;
 using ScadaNet.Runtime;
 
@@ -31,6 +32,22 @@ public class AspNetCoreRegistrationTests
         Assert.IsType<DeviceConnectionFactory>(connectionFactory);
         Assert.IsType<PlcRuntime>(runtime);
         Assert.Contains(drivers, driver => driver is EtherNetIpDiscoveryDriver);
+    }
+
+    [Fact]
+    public void AddLogix_registers_logix_driver()
+    {
+        var services = new ServiceCollection();
+
+        services
+            .AddScadaNet()
+            .AddLogix();
+
+        using var provider = services.BuildServiceProvider();
+
+        var drivers = provider.GetServices<IDeviceDriver>().ToArray();
+
+        Assert.Contains(drivers, driver => driver is LogixDriver);
     }
 
     [Fact]

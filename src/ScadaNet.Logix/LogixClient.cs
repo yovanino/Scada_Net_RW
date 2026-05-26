@@ -3,7 +3,7 @@ using ScadaNet.Core;
 
 namespace ScadaNet.Logix;
 
-public sealed class LogixClient : IAsyncDisposable
+public sealed class LogixClient : ILogixClient
 {
     private readonly ILogixMessageTransport _transport;
 

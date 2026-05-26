@@ -6,6 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services
     .AddScadaNet(builder.Configuration)
+    .AddLogix()
     .AddEtherNetIpDiscovery();
 
 var app = builder.Build();
