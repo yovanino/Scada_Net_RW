@@ -20,6 +20,10 @@ public class DeviceSignalSnapshotReaderTests
             DisplayOrder = 10,
             MinValue = 0,
             MaxValue = 999999,
+            RawMin = 0,
+            RawMax = 1000,
+            ScaledMin = 0,
+            ScaledMax = 100,
             IsArray = true,
             ElementCount = 10
         });
@@ -43,10 +47,15 @@ public class DeviceSignalSnapshotReaderTests
         Assert.Equal(10, snapshot.DisplayOrder);
         Assert.Equal(0, snapshot.MinValue);
         Assert.Equal(999999, snapshot.MaxValue);
+        Assert.Equal(0, snapshot.RawMin);
+        Assert.Equal(1000, snapshot.RawMax);
+        Assert.Equal(0, snapshot.ScaledMin);
+        Assert.Equal(100, snapshot.ScaledMax);
         Assert.True(snapshot.IsArray);
         Assert.Equal((ushort)10, snapshot.ElementCount);
         Assert.True(snapshot.HasValue);
         Assert.Equal(123, snapshot.Value?.Value);
+        Assert.Equal(12.3, Assert.IsType<double>(snapshot.ScaledValue), precision: 5);
     }
 
     [Fact]
@@ -104,6 +113,33 @@ public class DeviceSignalSnapshotReaderTests
 
         Assert.True(found);
         Assert.Equal(["b-signal", "a-signal", "z-signal"], snapshots.Select(snapshot => snapshot.Name));
+    }
+
+    [Fact]
+    public void TryGet_scales_numeric_array_values()
+    {
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        device.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "speed-history",
+            Address = "Motor.SpeedHistory",
+            RawMin = 0,
+            RawMax = 1000,
+            ScaledMin = 0,
+            ScaledMax = 100
+        });
+        var store = new SignalSnapshotStore();
+        store.Update(new SignalValue(
+            new SignalRef("line1-plc", "Motor.SpeedHistory"),
+            new object?[] { 0, 500, 1000 },
+            SignalQuality.Good,
+            DateTimeOffset.UtcNow));
+        var reader = new DeviceSignalSnapshotReader(new DeviceRegistry([device]), store);
+
+        var found = reader.TryGet("line1-plc", "speed-history", out var snapshot);
+
+        Assert.True(found);
+        Assert.Equal([0, 50, 100], Assert.IsType<double?[]>(snapshot.ScaledValue));
     }
 
     [Fact]

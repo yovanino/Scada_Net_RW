@@ -73,6 +73,10 @@ public sealed class ScadaNetOptions
         int? displayOrder = null,
         double? minValue = null,
         double? maxValue = null,
+        double? rawMin = null,
+        double? rawMax = null,
+        double? scaledMin = null,
+        double? scaledMax = null,
         bool isArray = false,
         ushort? elementCount = null,
         bool writable = false)
@@ -98,6 +102,10 @@ public sealed class ScadaNetOptions
             DisplayOrder = displayOrder,
             MinValue = minValue,
             MaxValue = maxValue,
+            RawMin = rawMin,
+            RawMax = rawMax,
+            ScaledMin = scaledMin,
+            ScaledMax = scaledMax,
             IsArray = isArray,
             ElementCount = elementCount,
             Writable = writable

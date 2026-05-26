@@ -183,4 +183,44 @@ public class ScadaNetOptionsValidatorTests
 
         Assert.Contains(error.Errors, item => item.Contains("minimum value cannot be greater than maximum value"));
     }
+
+    [Fact]
+    public void Validate_rejects_incomplete_signal_scaling()
+    {
+        var options = new ScadaNetOptions();
+
+        options.AddDevice("line1-plc", "logix", "192.168.0.10");
+        options.AddSignal(
+            "line1-plc",
+            "speed",
+            "Speed",
+            rawMin: 0,
+            rawMax: 1000);
+
+        var error = Assert.Throws<ScadaNetOptionsValidationException>(() =>
+            ScadaNetOptionsValidator.Validate(options));
+
+        Assert.Contains(error.Errors, item => item.Contains("scaling requires raw min, raw max, scaled min, and scaled max"));
+    }
+
+    [Fact]
+    public void Validate_rejects_zero_raw_scaling_range()
+    {
+        var options = new ScadaNetOptions();
+
+        options.AddDevice("line1-plc", "logix", "192.168.0.10");
+        options.AddSignal(
+            "line1-plc",
+            "speed",
+            "Speed",
+            rawMin: 100,
+            rawMax: 100,
+            scaledMin: 0,
+            scaledMax: 100);
+
+        var error = Assert.Throws<ScadaNetOptionsValidationException>(() =>
+            ScadaNetOptionsValidator.Validate(options));
+
+        Assert.Contains(error.Errors, item => item.Contains("raw scaling range cannot be zero"));
+    }
 }

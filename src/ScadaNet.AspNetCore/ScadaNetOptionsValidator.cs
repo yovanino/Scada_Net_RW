@@ -91,6 +91,24 @@ public static class ScadaNetOptionsValidator
                     errors.Add($"Device '{device.Name}' signal '{signal.Name}' minimum value cannot be greater than maximum value.");
                 }
 
+                var scalingCount = new[]
+                {
+                    signal.RawMin,
+                    signal.RawMax,
+                    signal.ScaledMin,
+                    signal.ScaledMax
+                }.Count(value => value.HasValue);
+
+                if (scalingCount is > 0 and < 4)
+                {
+                    errors.Add($"Device '{device.Name}' signal '{signal.Name}' scaling requires raw min, raw max, scaled min, and scaled max.");
+                }
+
+                if (scalingCount == 4 && signal.RawMin == signal.RawMax)
+                {
+                    errors.Add($"Device '{device.Name}' signal '{signal.Name}' raw scaling range cannot be zero.");
+                }
+
                 if (signal.Writable)
                 {
                     if (!device.WritesEnabled)

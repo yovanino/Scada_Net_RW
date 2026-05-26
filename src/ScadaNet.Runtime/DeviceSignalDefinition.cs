@@ -11,6 +11,10 @@ public sealed record DeviceSignalDefinition
     public int? DisplayOrder { get; init; }
     public double? MinValue { get; init; }
     public double? MaxValue { get; init; }
+    public double? RawMin { get; init; }
+    public double? RawMax { get; init; }
+    public double? ScaledMin { get; init; }
+    public double? ScaledMax { get; init; }
     public bool IsArray { get; init; }
     public ushort? ElementCount { get; init; }
     public bool Writable { get; init; }

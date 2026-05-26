@@ -12,8 +12,13 @@ public sealed record DeviceSignalSnapshot(
     int? DisplayOrder,
     double? MinValue,
     double? MaxValue,
+    double? RawMin,
+    double? RawMax,
+    double? ScaledMin,
+    double? ScaledMax,
     bool IsArray,
     ushort? ElementCount,
     bool Writable,
     bool HasValue,
-    SignalValue? Value);
+    SignalValue? Value,
+    object? ScaledValue);
