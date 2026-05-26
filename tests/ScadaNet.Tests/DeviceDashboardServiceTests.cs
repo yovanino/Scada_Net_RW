@@ -72,6 +72,66 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public async Task GetOverview_counts_devices_connections_polling_and_signals()
+    {
+        var line1 = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        line1.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "counter",
+            Address = "Counter",
+            Writable = true
+        });
+        var line2 = new DeviceDefinition("line2-plc", "fake", "127.0.0.2");
+        line2.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "speeds",
+            Address = "Speeds",
+            IsArray = true,
+            ElementCount = 4
+        });
+        var registry = new DeviceRegistry([line1, line2]);
+        var snapshots = new SignalSnapshotStore();
+        snapshots.Update(new SignalValue(
+            new SignalRef("line1-plc", "Counter"),
+            123,
+            SignalQuality.Good,
+            DateTimeOffset.UtcNow));
+        var statuses = new PollingStatusStore();
+        var group = new SignalPollingGroupDefinition
+        {
+            Name = "line1-fast",
+            DeviceName = "line1-plc"
+        };
+        group.SignalNames.Add("counter");
+        statuses.MarkSuccess(group, TimeSpan.FromMilliseconds(10), signalCount: 1);
+        await using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        await using (await connections.RentAsync("line1-plc"))
+        {
+        }
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([group]), statuses),
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var overview = service.GetOverview();
+
+        Assert.Equal(2, overview.DeviceCount);
+        Assert.Equal(1, overview.HealthyDeviceCount);
+        Assert.Equal(0, overview.DegradedDeviceCount);
+        Assert.Equal(1, overview.UnknownDeviceCount);
+        Assert.Equal(1, overview.ActiveConnectionCount);
+        Assert.Equal(0, overview.FailedConnectionCount);
+        Assert.Equal(1, overview.PollingGroupCount);
+        Assert.Equal(0, overview.StalePollingGroupCount);
+        Assert.Equal(2, overview.SignalCount);
+        Assert.Equal(1, overview.SignalWithValueCount);
+        Assert.Equal(1, overview.WritableSignalCount);
+        Assert.Equal(1, overview.ArraySignalCount);
+    }
+
+    [Fact]
     public void TryGet_returns_false_for_unknown_device()
     {
         var registry = new DeviceRegistry([]);

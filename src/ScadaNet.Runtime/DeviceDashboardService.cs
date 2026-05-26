@@ -33,6 +33,35 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             .ToArray()!;
     }
 
+    public DeviceDashboardOverview GetOverview()
+    {
+        var dashboards = GetAll();
+        var connections = dashboards
+            .Select(dashboard => dashboard.Connection)
+            .Where(connection => connection is not null)
+            .ToArray();
+        var pollingGroups = dashboards
+            .SelectMany(dashboard => dashboard.PollingGroups)
+            .ToArray();
+        var signals = dashboards
+            .SelectMany(dashboard => dashboard.Signals)
+            .ToArray();
+
+        return new DeviceDashboardOverview(
+            dashboards.Count,
+            dashboards.Count(dashboard => dashboard.Health.State == DeviceHealthState.Healthy),
+            dashboards.Count(dashboard => dashboard.Health.State == DeviceHealthState.Degraded),
+            dashboards.Count(dashboard => dashboard.Health.State == DeviceHealthState.Unknown),
+            connections.Count(connection => connection!.HasConnection),
+            connections.Count(connection => connection!.FailedRentCount > 0),
+            pollingGroups.Length,
+            pollingGroups.Count(group => group.IsStale),
+            signals.Length,
+            signals.Count(signal => signal.HasValue),
+            signals.Count(signal => signal.Writable),
+            signals.Count(signal => signal.IsArray));
+    }
+
     public bool TryGet(string deviceName, out DeviceDashboard dashboard)
     {
         if (!_devices.TryGet(deviceName, out var device) ||
