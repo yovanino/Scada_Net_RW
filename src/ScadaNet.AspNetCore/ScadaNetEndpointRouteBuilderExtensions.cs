@@ -56,12 +56,19 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                 });
             }
 
-            var value = await runtime.ReadAsync(
-                    new SignalRef(name, address),
-                    cancellationToken)
-                .ConfigureAwait(false);
+            try
+            {
+                var value = await runtime.ReadAsync(
+                        new SignalRef(name, address),
+                        cancellationToken)
+                    .ConfigureAwait(false);
 
-            return Results.Ok(value);
+                return Results.Ok(value);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                return ScadaNetHttpErrors.ToResult(ex);
+            }
         });
 
         group.MapPost("/devices/{name}/signals/read", async (
@@ -83,10 +90,17 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                 .Select(address => new SignalRef(name, address))
                 .ToArray();
 
-            var values = await runtime.ReadManyAsync(signals, cancellationToken)
-                .ConfigureAwait(false);
+            try
+            {
+                var values = await runtime.ReadManyAsync(signals, cancellationToken)
+                    .ConfigureAwait(false);
 
-            return Results.Ok(values);
+                return Results.Ok(values);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                return ScadaNetHttpErrors.ToResult(ex);
+            }
         });
 
         group.MapPost("/devices/{name}/signals/write", async (
@@ -104,13 +118,20 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                 });
             }
 
-            await runtime.WriteAsync(
-                    new SignalRef(name, request.Address),
-                    request.GetValue(),
-                    cancellationToken)
-                .ConfigureAwait(false);
+            try
+            {
+                await runtime.WriteAsync(
+                        new SignalRef(name, request.Address),
+                        request.GetValue(),
+                        cancellationToken)
+                    .ConfigureAwait(false);
 
-            return Results.Accepted();
+                return Results.Accepted();
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                return ScadaNetHttpErrors.ToResult(ex);
+            }
         });
 
         group.MapGet("/devices/{name}/signals/snapshot", (
