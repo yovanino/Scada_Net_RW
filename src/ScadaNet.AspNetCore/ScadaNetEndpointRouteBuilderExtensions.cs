@@ -58,8 +58,9 @@ public static class ScadaNetEndpointRouteBuilderExtensions
 
             try
             {
+                var signal = ScadaNetSignalRequestValidation.ToSignalRef(name, address);
                 var value = await runtime.ReadAsync(
-                        new SignalRef(name, address),
+                        signal,
                         cancellationToken)
                     .ConfigureAwait(false);
 
@@ -86,12 +87,9 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                 });
             }
 
-            var signals = request.Addresses
-                .Select(address => new SignalRef(name, address))
-                .ToArray();
-
             try
             {
+                var signals = request.ToSignalRefs(name);
                 var values = await runtime.ReadManyAsync(signals, cancellationToken)
                     .ConfigureAwait(false);
 
@@ -121,8 +119,9 @@ public static class ScadaNetEndpointRouteBuilderExtensions
 
             try
             {
+                var signal = ScadaNetSignalRequestValidation.ToSignalRef(name, address);
                 var value = await runtime.ReadArrayAsync(
-                        new SignalRef(name, address),
+                        signal,
                         count,
                         cancellationToken)
                     .ConfigureAwait(false);
@@ -153,7 +152,7 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             try
             {
                 await runtime.WriteAsync(
-                        new SignalRef(name, request.Address),
+                        request.ToSignalRef(name),
                         request.GetValue(),
                         request.DataType,
                         cancellationToken)
@@ -185,7 +184,7 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             try
             {
                 await runtime.WriteArrayAsync(
-                        new SignalRef(name, request.Address),
+                        request.ToSignalRef(name),
                         request.GetValues(),
                         request.DataType,
                         cancellationToken)

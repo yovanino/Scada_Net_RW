@@ -1,14 +1,37 @@
 using System.Text.Json;
+using ScadaNet.Model;
 
 namespace ScadaNet.AspNetCore;
 
-public sealed record ScadaNetReadManyRequest(IReadOnlyList<string> Addresses);
+public sealed record ScadaNetReadManyRequest(IReadOnlyList<string> Addresses)
+{
+    public IReadOnlyList<SignalRef> ToSignalRefs(string deviceName)
+    {
+        ArgumentNullException.ThrowIfNull(Addresses);
+
+        var signals = new SignalRef[Addresses.Count];
+        for (var index = 0; index < Addresses.Count; index++)
+        {
+            signals[index] = ScadaNetSignalRequestValidation.ToSignalRef(
+                deviceName,
+                Addresses[index],
+                $"addresses[{index}]");
+        }
+
+        return signals;
+    }
+}
 
 public sealed record ScadaNetWriteArrayRequest(
     string Address,
     JsonElement Values,
     string? DataType = null)
 {
+    public SignalRef ToSignalRef(string deviceName)
+    {
+        return ScadaNetSignalRequestValidation.ToSignalRef(deviceName, Address);
+    }
+
     public IReadOnlyList<object?> GetValues()
     {
         if (Values.ValueKind != JsonValueKind.Array)
@@ -28,9 +51,32 @@ public sealed record ScadaNetWriteSignalRequest(
     JsonElement Value,
     string? DataType = null)
 {
+    public SignalRef ToSignalRef(string deviceName)
+    {
+        return ScadaNetSignalRequestValidation.ToSignalRef(deviceName, Address);
+    }
+
     public object? GetValue()
     {
         return ScadaNetJsonSignalValue.ToObject(Value);
+    }
+}
+
+internal static class ScadaNetSignalRequestValidation
+{
+    public static SignalRef ToSignalRef(
+        string deviceName,
+        string? address,
+        string fieldName = "address")
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(deviceName);
+
+        if (string.IsNullOrWhiteSpace(address))
+        {
+            throw new ArgumentException("Signal address cannot be empty.", fieldName);
+        }
+
+        return new SignalRef(deviceName, address);
     }
 }
 

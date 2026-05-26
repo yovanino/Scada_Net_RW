@@ -6,6 +6,27 @@ namespace ScadaNet.Tests;
 public class ScadaNetSignalRequestsTests
 {
     [Fact]
+    public void Read_many_request_creates_signal_refs()
+    {
+        var request = new ScadaNetReadManyRequest(["Counter", "Motor.Speed"]);
+
+        var signals = request.ToSignalRefs("line1-plc");
+
+        Assert.Equal(["Counter", "Motor.Speed"], signals.Select(signal => signal.Address));
+        Assert.All(signals, signal => Assert.Equal("line1-plc", signal.DeviceName));
+    }
+
+    [Fact]
+    public void Read_many_request_rejects_empty_addresses()
+    {
+        var request = new ScadaNetReadManyRequest(["Counter", " "]);
+
+        var error = Assert.Throws<ArgumentException>(() => request.ToSignalRefs("line1-plc"));
+
+        Assert.Contains("Signal address cannot be empty", error.Message);
+    }
+
+    [Fact]
     public void GetValue_returns_bool()
     {
         var request = DeserializeWriteRequest("""
@@ -60,6 +81,27 @@ public class ScadaNetSignalRequestsTests
     }
 
     [Fact]
+    public void Write_request_creates_signal_ref()
+    {
+        var request = new ScadaNetWriteSignalRequest("ResetCommand", JsonDocument.Parse("true").RootElement);
+
+        var signal = request.ToSignalRef("line1-plc");
+
+        Assert.Equal("line1-plc", signal.DeviceName);
+        Assert.Equal("ResetCommand", signal.Address);
+    }
+
+    [Fact]
+    public void Write_request_rejects_empty_address()
+    {
+        var request = new ScadaNetWriteSignalRequest(" ", JsonDocument.Parse("true").RootElement);
+
+        var error = Assert.Throws<ArgumentException>(() => request.ToSignalRef("line1-plc"));
+
+        Assert.Contains("Signal address cannot be empty", error.Message);
+    }
+
+    [Fact]
     public void GetValues_returns_array_values()
     {
         var request = JsonSerializer.Deserialize<ScadaNetWriteArrayRequest>(
@@ -89,6 +131,17 @@ public class ScadaNetSignalRequestsTests
 
         Assert.Equal("Real", request.DataType);
         Assert.Equal([1, 2, 3], request.GetValues());
+    }
+
+    [Fact]
+    public void Write_array_request_rejects_empty_address()
+    {
+        using var document = JsonDocument.Parse("[1,2,3]");
+        var request = new ScadaNetWriteArrayRequest(" ", document.RootElement);
+
+        var error = Assert.Throws<ArgumentException>(() => request.ToSignalRef("line1-plc"));
+
+        Assert.Contains("Signal address cannot be empty", error.Message);
     }
 
     private static ScadaNetWriteSignalRequest DeserializeWriteRequest(string json)
