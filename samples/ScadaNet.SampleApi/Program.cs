@@ -19,6 +19,7 @@ app.MapGet("/", () => Results.Ok(new
         "/scadanet/devices",
         "/scadanet/devices/line1-plc/discovery",
         "/scadanet/devices/line1-plc/signals/read?address=ProductionCounter",
+        "/scadanet/devices/line1-plc/signals/snapshot",
         "/scadanet/devices/line1-plc/signals/write",
         "/discovery/ethernetip?address=192.168.0.10"
     }

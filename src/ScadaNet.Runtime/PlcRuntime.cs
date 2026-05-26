@@ -5,10 +5,14 @@ namespace ScadaNet.Runtime;
 public sealed class PlcRuntime : IPlcRuntime
 {
     private readonly IDeviceConnectionPool _connections;
+    private readonly ISignalSnapshotStore _snapshots;
 
-    public PlcRuntime(IDeviceConnectionPool connections)
+    public PlcRuntime(
+        IDeviceConnectionPool connections,
+        ISignalSnapshotStore snapshots)
     {
         _connections = connections;
+        _snapshots = snapshots;
     }
 
     public async ValueTask<SignalValue> ReadAsync(
@@ -19,8 +23,11 @@ public sealed class PlcRuntime : IPlcRuntime
             .RentAsync(signal.DeviceName, cancellationToken)
             .ConfigureAwait(false);
 
-        return await lease.Connection.ReadAsync(signal, cancellationToken)
+        var value = await lease.Connection.ReadAsync(signal, cancellationToken)
             .ConfigureAwait(false);
+
+        _snapshots.Update(value);
+        return value;
     }
 
     public async ValueTask<IReadOnlyList<SignalValue>> ReadManyAsync(
@@ -39,6 +46,7 @@ public sealed class PlcRuntime : IPlcRuntime
                 .ReadManyAsync(group.ToArray(), cancellationToken)
                 .ConfigureAwait(false);
 
+            _snapshots.UpdateMany(groupValues);
             values.AddRange(groupValues);
         }
 

@@ -41,3 +41,13 @@ Content-Type: application/json
 }
 
 ###
+
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/snapshot
+Accept: application/json
+
+###
+
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/snapshot/ProductionCounter
+Accept: application/json
+
+###

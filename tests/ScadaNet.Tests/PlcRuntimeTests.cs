@@ -11,7 +11,8 @@ public class PlcRuntimeTests
     {
         var connection = new FakeConnection();
         var pool = new FakeConnectionPool(connection);
-        var runtime = new PlcRuntime(pool);
+        var snapshots = new SignalSnapshotStore();
+        var runtime = new PlcRuntime(pool, snapshots);
         var signal = new SignalRef("line1-plc", "ProductionCounter");
 
         var value = await runtime.ReadAsync(signal);
@@ -20,6 +21,8 @@ public class PlcRuntimeTests
         Assert.Equal(123, value.Value);
         Assert.True(pool.LastLeaseWasDisposed);
         Assert.False(connection.WasDisposed);
+        Assert.True(snapshots.TryGet(signal, out var snapshot));
+        Assert.Equal(123, snapshot.Value);
     }
 
     [Fact]
@@ -27,7 +30,7 @@ public class PlcRuntimeTests
     {
         var connection = new FakeConnection();
         var pool = new FakeConnectionPool(connection);
-        var runtime = new PlcRuntime(pool);
+        var runtime = new PlcRuntime(pool, new SignalSnapshotStore());
         var signal = new SignalRef("line1-plc", "ResetCommand");
 
         await runtime.WriteAsync(signal, true);

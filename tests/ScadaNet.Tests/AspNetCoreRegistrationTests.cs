@@ -25,6 +25,7 @@ public class AspNetCoreRegistrationTests
         var registry = provider.GetRequiredService<IDeviceRegistry>();
         var connectionFactory = provider.GetRequiredService<IDeviceConnectionFactory>();
         var connectionPool = provider.GetRequiredService<IDeviceConnectionPool>();
+        var snapshots = provider.GetRequiredService<ISignalSnapshotStore>();
         var runtime = provider.GetRequiredService<IPlcRuntime>();
         var drivers = provider.GetServices<IDeviceDriver>().ToArray();
 
@@ -32,6 +33,7 @@ public class AspNetCoreRegistrationTests
         Assert.IsType<DeviceRegistry>(registry);
         Assert.IsType<DeviceConnectionFactory>(connectionFactory);
         Assert.IsType<DeviceConnectionPool>(connectionPool);
+        Assert.IsType<SignalSnapshotStore>(snapshots);
         Assert.IsType<PlcRuntime>(runtime);
         Assert.Contains(drivers, driver => driver is EtherNetIpDiscoveryDriver);
     }
