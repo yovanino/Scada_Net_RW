@@ -4,9 +4,9 @@ namespace ScadaNet.Runtime;
 
 public sealed class PlcRuntime : IPlcRuntime
 {
-    private readonly IDeviceConnectionFactory _connections;
+    private readonly IDeviceConnectionPool _connections;
 
-    public PlcRuntime(IDeviceConnectionFactory connections)
+    public PlcRuntime(IDeviceConnectionPool connections)
     {
         _connections = connections;
     }
@@ -15,11 +15,11 @@ public sealed class PlcRuntime : IPlcRuntime
         SignalRef signal,
         CancellationToken cancellationToken = default)
     {
-        await using var connection = await _connections
-            .ConnectAsync(signal.DeviceName, cancellationToken)
+        await using var lease = await _connections
+            .RentAsync(signal.DeviceName, cancellationToken)
             .ConfigureAwait(false);
 
-        return await connection.ReadAsync(signal, cancellationToken)
+        return await lease.Connection.ReadAsync(signal, cancellationToken)
             .ConfigureAwait(false);
     }
 
@@ -31,11 +31,11 @@ public sealed class PlcRuntime : IPlcRuntime
 
         foreach (var group in signals.GroupBy(signal => signal.DeviceName))
         {
-            await using var connection = await _connections
-                .ConnectAsync(group.Key, cancellationToken)
+            await using var lease = await _connections
+                .RentAsync(group.Key, cancellationToken)
                 .ConfigureAwait(false);
 
-            var groupValues = await connection
+            var groupValues = await lease.Connection
                 .ReadManyAsync(group.ToArray(), cancellationToken)
                 .ConfigureAwait(false);
 
@@ -50,11 +50,11 @@ public sealed class PlcRuntime : IPlcRuntime
         object? value,
         CancellationToken cancellationToken = default)
     {
-        await using var connection = await _connections
-            .ConnectAsync(signal.DeviceName, cancellationToken)
+        await using var lease = await _connections
+            .RentAsync(signal.DeviceName, cancellationToken)
             .ConfigureAwait(false);
 
-        await connection.WriteAsync(signal, value, cancellationToken)
+        await lease.Connection.WriteAsync(signal, value, cancellationToken)
             .ConfigureAwait(false);
     }
 }

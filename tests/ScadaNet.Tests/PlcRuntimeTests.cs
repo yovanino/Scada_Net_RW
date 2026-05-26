@@ -10,50 +10,72 @@ public class PlcRuntimeTests
     public async Task ReadAsync_connects_by_signal_device_name()
     {
         var connection = new FakeConnection();
-        var factory = new FakeConnectionFactory(connection);
-        var runtime = new PlcRuntime(factory);
+        var pool = new FakeConnectionPool(connection);
+        var runtime = new PlcRuntime(pool);
         var signal = new SignalRef("line1-plc", "ProductionCounter");
 
         var value = await runtime.ReadAsync(signal);
 
-        Assert.Equal("line1-plc", factory.LastDeviceName);
+        Assert.Equal("line1-plc", pool.LastDeviceName);
         Assert.Equal(123, value.Value);
-        Assert.True(connection.WasDisposed);
+        Assert.True(pool.LastLeaseWasDisposed);
+        Assert.False(connection.WasDisposed);
     }
 
     [Fact]
     public async Task WriteAsync_uses_connection_for_signal_device()
     {
         var connection = new FakeConnection();
-        var factory = new FakeConnectionFactory(connection);
-        var runtime = new PlcRuntime(factory);
+        var pool = new FakeConnectionPool(connection);
+        var runtime = new PlcRuntime(pool);
         var signal = new SignalRef("line1-plc", "ResetCommand");
 
         await runtime.WriteAsync(signal, true);
 
-        Assert.Equal("line1-plc", factory.LastDeviceName);
+        Assert.Equal("line1-plc", pool.LastDeviceName);
         Assert.Equal(signal, connection.LastWrittenSignal);
         Assert.Equal(true, connection.LastWrittenValue);
-        Assert.True(connection.WasDisposed);
+        Assert.True(pool.LastLeaseWasDisposed);
+        Assert.False(connection.WasDisposed);
     }
 
-    private sealed class FakeConnectionFactory : IDeviceConnectionFactory
+    private sealed class FakeConnectionPool : IDeviceConnectionPool
     {
         private readonly IDeviceConnection _connection;
+        private FakeLease? _lastLease;
 
-        public FakeConnectionFactory(IDeviceConnection connection)
+        public FakeConnectionPool(IDeviceConnection connection)
         {
             _connection = connection;
         }
 
         public string? LastDeviceName { get; private set; }
+        public bool LastLeaseWasDisposed => _lastLease?.WasDisposed == true;
 
-        public ValueTask<IDeviceConnection> ConnectAsync(
+        public ValueTask<IDeviceConnectionLease> RentAsync(
             string deviceName,
             CancellationToken cancellationToken = default)
         {
             LastDeviceName = deviceName;
-            return ValueTask.FromResult(_connection);
+            _lastLease = new FakeLease(_connection);
+            return ValueTask.FromResult<IDeviceConnectionLease>(_lastLease);
+        }
+    }
+
+    private sealed class FakeLease : IDeviceConnectionLease
+    {
+        public FakeLease(IDeviceConnection connection)
+        {
+            Connection = connection;
+        }
+
+        public IDeviceConnection Connection { get; }
+        public bool WasDisposed { get; private set; }
+
+        public ValueTask DisposeAsync()
+        {
+            WasDisposed = true;
+            return ValueTask.CompletedTask;
         }
     }
 

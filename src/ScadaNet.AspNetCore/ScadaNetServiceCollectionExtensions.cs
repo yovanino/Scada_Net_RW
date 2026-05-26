@@ -35,6 +35,7 @@ public static class ScadaNetServiceCollectionExtensions
         services.AddSingleton(options);
         services.AddSingleton<IDeviceRegistry>(_ => new DeviceRegistry(options.Devices));
         services.AddSingleton<IDeviceConnectionFactory, DeviceConnectionFactory>();
+        services.AddSingleton<IDeviceConnectionPool, DeviceConnectionPool>();
         services.AddSingleton<IDiscoveryService, DiscoveryService>();
         services.AddSingleton<IPlcRuntime, PlcRuntime>();
         return services;
