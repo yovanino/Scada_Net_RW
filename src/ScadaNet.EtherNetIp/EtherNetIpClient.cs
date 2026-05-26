@@ -51,6 +51,25 @@ public sealed class EtherNetIpClient : IAsyncDisposable
         return ListIdentityCodec.DecodeResponse(packet);
     }
 
+    public async ValueTask<byte[]> SendRRDataAsync(
+        byte[] data,
+        CancellationToken cancellationToken = default)
+    {
+        if (SessionHandle == 0)
+        {
+            await RegisterSessionAsync(cancellationToken).ConfigureAwait(false);
+        }
+
+        var request = SendRRDataCodec.EncodeRequest(
+            SessionHandle,
+            new SendRRDataRequest(data));
+
+        await _transport.SendAsync(request, cancellationToken).ConfigureAwait(false);
+
+        var packet = await ReceivePacketAsync(cancellationToken).ConfigureAwait(false);
+        return SendRRDataCodec.DecodeResponse(packet).Data;
+    }
+
     public ValueTask DisposeAsync()
     {
         return _transport.DisposeAsync();
