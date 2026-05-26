@@ -81,6 +81,22 @@ public class PlcRuntimeTests
     }
 
     [Fact]
+    public async Task ReadManyAsync_returns_empty_without_renting_connection_for_empty_signal_list()
+    {
+        var connection = new FakeConnection();
+        var registry = new DeviceRegistry([
+            new DeviceDefinition("line1-plc", "fake", "127.0.0.1")
+        ]);
+        var pool = new FakeConnectionPool(connection);
+        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore(), new WriteAuditStore());
+
+        var values = await runtime.ReadManyAsync([]);
+
+        Assert.Empty(values);
+        Assert.Null(pool.LastDeviceName);
+    }
+
+    [Fact]
     public async Task WriteArrayAsync_uses_array_connection_and_audits_write()
     {
         var connection = new FakeArrayConnection();

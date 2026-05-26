@@ -41,6 +41,13 @@ public sealed class PlcRuntime : IPlcRuntime
         IReadOnlyList<SignalRef> signals,
         CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(signals);
+
+        if (signals.Count == 0)
+        {
+            return [];
+        }
+
         var values = new List<SignalValue>(signals.Count);
 
         foreach (var group in signals.GroupBy(signal => signal.DeviceName))
