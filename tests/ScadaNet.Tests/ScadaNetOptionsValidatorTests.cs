@@ -123,4 +123,45 @@ public class ScadaNetOptionsValidatorTests
 
         Assert.Contains(error.Errors, item => item.Contains("element count must be greater than zero"));
     }
+
+    [Fact]
+    public void Validate_rejects_writable_signal_when_device_writes_are_disabled()
+    {
+        var options = new ScadaNetOptions();
+
+        options.AddDevice("line1-plc", "logix", "192.168.0.10");
+        options.AddSignal(
+            "line1-plc",
+            "reset-command",
+            "ResetCommand",
+            writable: true);
+
+        var error = Assert.Throws<ScadaNetOptionsValidationException>(() =>
+            ScadaNetOptionsValidator.Validate(options));
+
+        Assert.Contains(error.Errors, item => item.Contains("device writes are disabled"));
+    }
+
+    [Fact]
+    public void Validate_rejects_writable_signal_outside_device_write_policy()
+    {
+        var options = new ScadaNetOptions();
+
+        options.AddDevice(
+            "line1-plc",
+            "logix",
+            "192.168.0.10",
+            writesEnabled: true,
+            writableAddresses: ["ResetCommand"]);
+        options.AddSignal(
+            "line1-plc",
+            "speed-setpoint",
+            "SpeedSetpoint",
+            writable: true);
+
+        var error = Assert.Throws<ScadaNetOptionsValidationException>(() =>
+            ScadaNetOptionsValidator.Validate(options));
+
+        Assert.Contains(error.Errors, item => item.Contains("not allowed by the device write policy"));
+    }
 }

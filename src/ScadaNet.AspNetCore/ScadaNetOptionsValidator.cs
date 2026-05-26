@@ -83,6 +83,20 @@ public static class ScadaNetOptionsValidator
                 {
                     errors.Add($"Device '{device.Name}' signal '{signal.Name}' element count must be greater than zero.");
                 }
+
+                if (signal.Writable)
+                {
+                    if (!device.WritesEnabled)
+                    {
+                        errors.Add(
+                            $"Device '{device.Name}' signal '{signal.Name}' is writable, but device writes are disabled.");
+                    }
+                    else if (!string.IsNullOrWhiteSpace(signal.Address) && !device.CanWrite(signal.Address))
+                    {
+                        errors.Add(
+                            $"Device '{device.Name}' signal '{signal.Name}' address '{signal.Address}' is not allowed by the device write policy.");
+                    }
+                }
             }
         }
 
