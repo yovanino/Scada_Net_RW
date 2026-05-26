@@ -298,6 +298,11 @@ public class PlcRuntimeTests
             _lastLease = new FakeLease(_connection);
             return ValueTask.FromResult<IDeviceConnectionLease>(_lastLease);
         }
+
+        public IReadOnlyList<DeviceConnectionPoolStatus> GetStatus()
+        {
+            return [];
+        }
     }
 
     private sealed class FakeLease : IDeviceConnectionLease

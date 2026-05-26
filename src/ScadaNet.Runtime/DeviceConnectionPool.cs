@@ -29,6 +29,9 @@ public sealed class DeviceConnectionPool : IDeviceConnectionPool, IAsyncDisposab
             entry.Connection ??= await _factory
                 .ConnectAsync(deviceName, cancellationToken)
                 .ConfigureAwait(false);
+            entry.ConnectedAt ??= DateTimeOffset.UtcNow;
+            entry.LastRentedAt = DateTimeOffset.UtcNow;
+            entry.RentCount++;
 
             return new DeviceConnectionLease(entry);
         }
@@ -63,6 +66,20 @@ public sealed class DeviceConnectionPool : IDeviceConnectionPool, IAsyncDisposab
         _entries.Clear();
     }
 
+    public IReadOnlyList<DeviceConnectionPoolStatus> GetStatus()
+    {
+        return _entries.Values
+            .Select(entry => new DeviceConnectionPoolStatus(
+                entry.DeviceName,
+                entry.Connection is not null,
+                entry.Lock.CurrentCount == 0,
+                entry.RentCount,
+                entry.ConnectedAt,
+                entry.LastRentedAt))
+            .OrderBy(status => status.DeviceName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
     public void Dispose()
     {
         DisposeAsync().AsTask().GetAwaiter().GetResult();
@@ -78,6 +95,9 @@ public sealed class DeviceConnectionPool : IDeviceConnectionPool, IAsyncDisposab
         public string DeviceName { get; }
         public SemaphoreSlim Lock { get; } = new(1, 1);
         public IDeviceConnection? Connection { get; set; }
+        public DateTimeOffset? ConnectedAt { get; set; }
+        public DateTimeOffset? LastRentedAt { get; set; }
+        public long RentCount { get; set; }
     }
 
     private sealed class DeviceConnectionLease : IDeviceConnectionLease

@@ -5,4 +5,6 @@ public interface IDeviceConnectionPool
     ValueTask<IDeviceConnectionLease> RentAsync(
         string deviceName,
         CancellationToken cancellationToken = default);
+
+    IReadOnlyList<DeviceConnectionPoolStatus> GetStatus();
 }

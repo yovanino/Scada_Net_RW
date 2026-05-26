@@ -41,6 +41,11 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             return Results.Ok(result);
         });
 
+        group.MapGet("/connections/pool", (IDeviceConnectionPool connections) =>
+        {
+            return Results.Ok(connections.GetStatus());
+        });
+
         group.MapGet("/devices/{name}/signals/read", async (
             string name,
             string address,

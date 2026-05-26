@@ -58,6 +58,45 @@ public class DeviceConnectionPoolTests
         Assert.True(connection.WasDisposed);
     }
 
+    [Fact]
+    public async Task GetStatus_reports_cached_connections()
+    {
+        var factory = new FakeConnectionFactory();
+        await using var pool = new DeviceConnectionPool(factory);
+
+        await using (await pool.RentAsync("line2-plc"))
+        {
+        }
+
+        await using (await pool.RentAsync("line1-plc"))
+        {
+        }
+
+        var statuses = pool.GetStatus();
+
+        Assert.Equal(["line1-plc", "line2-plc"], statuses.Select(status => status.DeviceName));
+        Assert.All(statuses, status =>
+        {
+            Assert.True(status.HasConnection);
+            Assert.False(status.IsInUse);
+            Assert.Equal(1, status.RentCount);
+            Assert.NotNull(status.ConnectedAt);
+            Assert.NotNull(status.LastRentedAt);
+        });
+    }
+
+    [Fact]
+    public async Task GetStatus_reports_in_use_connection()
+    {
+        var factory = new FakeConnectionFactory();
+        await using var pool = new DeviceConnectionPool(factory);
+
+        await using var lease = await pool.RentAsync("line1-plc");
+
+        var status = Assert.Single(pool.GetStatus());
+        Assert.True(status.IsInUse);
+    }
+
     private sealed class FakeConnectionFactory : IDeviceConnectionFactory
     {
         public int ConnectCount { get; private set; }
