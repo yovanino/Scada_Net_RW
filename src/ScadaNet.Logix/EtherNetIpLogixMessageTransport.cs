@@ -5,6 +5,7 @@ namespace ScadaNet.Logix;
 public sealed class EtherNetIpLogixMessageTransport : ILogixMessageTransport
 {
     private readonly EtherNetIpClient _client;
+    private readonly string _path;
 
     public EtherNetIpLogixMessageTransport(LogixClientOptions options)
         : this(new EtherNetIpClient(new EtherNetIpClientOptions
@@ -13,20 +14,26 @@ public sealed class EtherNetIpLogixMessageTransport : ILogixMessageTransport
             Port = options.Port,
             ConnectTimeout = options.Timeout,
             OperationTimeout = options.Timeout
-        }))
+        }), options.Path)
     {
     }
 
-    public EtherNetIpLogixMessageTransport(EtherNetIpClient client)
+    public EtherNetIpLogixMessageTransport(EtherNetIpClient client, string path = "1,0")
     {
         _client = client;
+        _path = path;
     }
 
-    public ValueTask<byte[]> SendAsync(
+    public async ValueTask<byte[]> SendAsync(
         byte[] message,
         CancellationToken cancellationToken = default)
     {
-        return _client.SendRRDataAsync(message, cancellationToken);
+        var request = LogixUnconnectedSendCodec.EncodeRequest(
+            new LogixUnconnectedSendRequest(message, _path));
+        var response = await _client.SendRRDataAsync(request, cancellationToken)
+            .ConfigureAwait(false);
+
+        return LogixUnconnectedSendCodec.DecodeResponse(response);
     }
 
     public ValueTask DisposeAsync()
