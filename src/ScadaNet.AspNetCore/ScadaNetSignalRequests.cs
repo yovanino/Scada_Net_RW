@@ -22,6 +22,24 @@ public sealed record ScadaNetReadManyRequest(IReadOnlyList<string> Addresses)
     }
 }
 
+public sealed record ScadaNetReadManyNamedRequest(IReadOnlyList<string> SignalNames)
+{
+    public IReadOnlyList<string> GetSignalNames()
+    {
+        ArgumentNullException.ThrowIfNull(SignalNames);
+
+        var signalNames = new string[SignalNames.Count];
+        for (var index = 0; index < SignalNames.Count; index++)
+        {
+            signalNames[index] = ScadaNetSignalRequestValidation.ToSignalName(
+                SignalNames[index],
+                $"signalNames[{index}]");
+        }
+
+        return signalNames;
+    }
+}
+
 public sealed record ScadaNetWriteArrayRequest(
     string Address,
     JsonElement Values,
@@ -74,6 +92,18 @@ public sealed record ScadaNetWriteNamedSignalRequest(
 
 internal static class ScadaNetSignalRequestValidation
 {
+    public static string ToSignalName(
+        string? signalName,
+        string fieldName = "signalName")
+    {
+        if (string.IsNullOrWhiteSpace(signalName))
+        {
+            throw new ArgumentException("Signal name cannot be empty.", fieldName);
+        }
+
+        return signalName;
+    }
+
     public static SignalRef ToSignalRef(
         string deviceName,
         string? address,

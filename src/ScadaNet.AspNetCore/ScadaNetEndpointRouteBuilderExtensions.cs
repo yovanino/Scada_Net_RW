@@ -198,6 +198,42 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             }
         });
 
+        group.MapPost("/devices/{name}/signals/read-named", async (
+            string name,
+            ScadaNetReadManyNamedRequest request,
+            IDeviceSignalResolver signals,
+            IPlcRuntime runtime,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var signalNames = request.GetSignalNames();
+                if (!signals.TryResolveMany(
+                    name,
+                    signalNames,
+                    out var resolutions,
+                    out var missingSignalName))
+                {
+                    return Results.NotFound(new
+                    {
+                        Message = $"Signal '{missingSignalName}' is not registered for device '{name}'."
+                    });
+                }
+
+                var values = await runtime
+                    .ReadManyAsync(
+                        resolutions.Select(resolution => resolution.Signal).ToArray(),
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                return Results.Ok(values);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                return ScadaNetHttpErrors.ToResult(ex);
+            }
+        });
+
         group.MapGet("/devices/{name}/signals/read-array", async (
             string name,
             string address,

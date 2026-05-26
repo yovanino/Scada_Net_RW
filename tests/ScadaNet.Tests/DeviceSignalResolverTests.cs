@@ -39,4 +39,53 @@ public class DeviceSignalResolverTests
 
         Assert.False(found);
     }
+
+    [Fact]
+    public void TryResolveMany_maps_all_logical_signal_names_to_plc_addresses()
+    {
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        device.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "counter",
+            Address = "ProductionCounter"
+        });
+        device.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "speed",
+            Address = "Motor.Speed"
+        });
+        var resolver = new DeviceSignalResolver(new DeviceRegistry([device]));
+
+        var found = resolver.TryResolveMany(
+            "line1-plc",
+            ["COUNTER", "speed"],
+            out var resolutions,
+            out var missingSignalName);
+
+        Assert.True(found);
+        Assert.Null(missingSignalName);
+        Assert.Equal(["ProductionCounter", "Motor.Speed"], resolutions.Select(item => item.Signal.Address));
+    }
+
+    [Fact]
+    public void TryResolveMany_returns_missing_signal_name()
+    {
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        device.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "counter",
+            Address = "ProductionCounter"
+        });
+        var resolver = new DeviceSignalResolver(new DeviceRegistry([device]));
+
+        var found = resolver.TryResolveMany(
+            "line1-plc",
+            ["counter", "speed"],
+            out var resolutions,
+            out var missingSignalName);
+
+        Assert.False(found);
+        Assert.Empty(resolutions);
+        Assert.Equal("speed", missingSignalName);
+    }
 }

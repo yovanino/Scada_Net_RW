@@ -27,6 +27,16 @@ public class ScadaNetSignalRequestsTests
     }
 
     [Fact]
+    public void Read_many_named_request_rejects_empty_signal_names()
+    {
+        var request = new ScadaNetReadManyNamedRequest(["counter", " "]);
+
+        var error = Assert.Throws<ArgumentException>(request.GetSignalNames);
+
+        Assert.Contains("Signal name cannot be empty", error.Message);
+    }
+
+    [Fact]
     public void GetValue_returns_bool()
     {
         var request = DeserializeWriteRequest("""

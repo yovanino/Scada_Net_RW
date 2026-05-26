@@ -29,4 +29,31 @@ public sealed class DeviceSignalResolver : IDeviceSignalResolver
             new SignalRef(device.Name, definition.Address));
         return true;
     }
+
+    public bool TryResolveMany(
+        string deviceName,
+        IReadOnlyList<string> signalNames,
+        out IReadOnlyList<DeviceSignalResolution> resolutions,
+        out string? missingSignalName)
+    {
+        ArgumentNullException.ThrowIfNull(signalNames);
+
+        var items = new DeviceSignalResolution[signalNames.Count];
+        for (var index = 0; index < signalNames.Count; index++)
+        {
+            var signalName = signalNames[index];
+            if (!TryResolve(deviceName, signalName, out var resolution))
+            {
+                resolutions = [];
+                missingSignalName = signalName;
+                return false;
+            }
+
+            items[index] = resolution;
+        }
+
+        resolutions = items;
+        missingSignalName = null;
+        return true;
+    }
 }
