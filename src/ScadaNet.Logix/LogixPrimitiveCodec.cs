@@ -32,6 +32,30 @@ public static class LogixPrimitiveCodec
         };
     }
 
+    public static byte[] EncodeMany(
+        LogixDataTypeCode type,
+        IReadOnlyList<object?> values)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+
+        if (values.Count == 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(values),
+                values.Count,
+                "Logix primitive encode element count must be greater than zero.");
+        }
+
+        using var stream = new MemoryStream();
+
+        foreach (var value in values)
+        {
+            stream.Write(Encode(type, value));
+        }
+
+        return stream.ToArray();
+    }
+
     public static IReadOnlyList<object?> DecodeMany(
         LogixDataTypeCode type,
         ReadOnlySpan<byte> data,

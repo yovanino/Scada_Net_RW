@@ -110,5 +110,17 @@ public class LogixDeviceConnectionTests
             LastWriteValue = value;
             return ValueTask.CompletedTask;
         }
+
+        public ValueTask WriteArrayAsync(
+            string tagName,
+            LogixDataTypeCode dataType,
+            IReadOnlyList<object?> values,
+            CancellationToken cancellationToken = default)
+        {
+            LastWriteTag = tagName;
+            LastWriteType = dataType;
+            LastWriteValue = values;
+            return ValueTask.CompletedTask;
+        }
     }
 }

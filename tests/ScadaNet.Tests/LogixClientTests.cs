@@ -69,6 +69,33 @@ public class LogixClientTests
     }
 
     [Fact]
+    public async Task WriteArrayAsync_sends_write_tag_request_with_element_count()
+    {
+        var transport = new FakeLogixTransport([0xCD, 0x00, 0x00, 0x00]);
+        await using var client = new LogixClient(transport);
+
+        await client.WriteArrayAsync("Counters", LogixDataTypeCode.Dint, [1, 2, 3]);
+
+        Assert.Equal(
+            LogixMessageCodec.EncodeWriteTag(new LogixWriteTagRequest(
+                "Counters",
+                LogixDataTypeCode.Dint,
+                3,
+                LogixPrimitiveCodec.EncodeMany(LogixDataTypeCode.Dint, [1, 2, 3]))),
+            transport.LastMessage);
+    }
+
+    [Fact]
+    public async Task WriteArrayAsync_rejects_empty_values()
+    {
+        var transport = new FakeLogixTransport([]);
+        await using var client = new LogixClient(transport);
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
+            await client.WriteArrayAsync("Counters", LogixDataTypeCode.Dint, []));
+    }
+
+    [Fact]
     public async Task ReadAsync_throws_when_controller_returns_error_status()
     {
         var transport = new FakeLogixTransport([0xCC, 0x00, 0x05, 0x01, 0x34, 0x12]);

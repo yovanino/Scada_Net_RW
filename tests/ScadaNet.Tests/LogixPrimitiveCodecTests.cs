@@ -40,6 +40,29 @@ public class LogixPrimitiveCodecTests
     }
 
     [Fact]
+    public void EncodeMany_encodes_dint_values()
+    {
+        var encoded = LogixPrimitiveCodec.EncodeMany(
+            LogixDataTypeCode.Dint,
+            [1, 2, 3]);
+
+        Assert.Equal(
+            [
+                0x01, 0x00, 0x00, 0x00,
+                0x02, 0x00, 0x00, 0x00,
+                0x03, 0x00, 0x00, 0x00
+            ],
+            encoded);
+    }
+
+    [Fact]
+    public void EncodeMany_rejects_empty_values()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            LogixPrimitiveCodec.EncodeMany(LogixDataTypeCode.Dint, []));
+    }
+
+    [Fact]
     public void DecodeMany_rejects_incomplete_data()
     {
         Assert.Throws<ArgumentException>(() =>

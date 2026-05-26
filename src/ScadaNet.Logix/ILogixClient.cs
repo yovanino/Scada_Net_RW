@@ -20,4 +20,10 @@ public interface ILogixClient : IAsyncDisposable
         LogixDataTypeCode dataType,
         object? value,
         CancellationToken cancellationToken = default);
+
+    ValueTask WriteArrayAsync(
+        string tagName,
+        LogixDataTypeCode dataType,
+        IReadOnlyList<object?> values,
+        CancellationToken cancellationToken = default);
 }

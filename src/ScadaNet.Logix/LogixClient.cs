@@ -88,6 +88,42 @@ public sealed class LogixClient : ILogixClient
         EnsureSucceeded(response.Status, $"WriteTag '{tagName}' failed");
     }
 
+    public async ValueTask WriteArrayAsync(
+        string tagName,
+        LogixDataTypeCode dataType,
+        IReadOnlyList<object?> values,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+
+        if (values.Count == 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(values),
+                values.Count,
+                "Logix array write element count must be greater than zero.");
+        }
+
+        if (values.Count > ushort.MaxValue)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(values),
+                values.Count,
+                "Logix array write element count cannot exceed 65535.");
+        }
+
+        var request = LogixMessageCodec.EncodeWriteTag(new LogixWriteTagRequest(
+            tagName,
+            dataType,
+            (ushort)values.Count,
+            LogixPrimitiveCodec.EncodeMany(dataType, values)));
+        var responseMessage = await _transport.SendAsync(request, cancellationToken)
+            .ConfigureAwait(false);
+        var response = LogixMessageCodec.DecodeWriteTagResponse(responseMessage);
+
+        EnsureSucceeded(response.Status, $"WriteTag '{tagName}' failed");
+    }
+
     public ValueTask DisposeAsync()
     {
         return _transport.DisposeAsync();
