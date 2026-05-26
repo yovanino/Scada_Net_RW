@@ -47,6 +47,7 @@ public static class ScadaNetServiceCollectionExtensions
         services.AddSingleton<IPollingGroupMonitor, PollingGroupMonitor>();
         services.AddSingleton<IWriteAuditStore, WriteAuditStore>();
         services.AddSingleton<IDeviceHealthService, DeviceHealthService>();
+        services.AddSingleton<IDeviceDashboardService, DeviceDashboardService>();
         services.AddSingleton<IDiscoveryService, DiscoveryService>();
         services.AddSingleton<IPlcRuntime, PlcRuntime>();
         services.AddSingleton<ISignalPollingService>(provider => new SignalPollingService(

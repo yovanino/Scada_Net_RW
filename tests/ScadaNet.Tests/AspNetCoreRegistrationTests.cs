@@ -34,6 +34,7 @@ public class AspNetCoreRegistrationTests
         var pollingMonitor = provider.GetRequiredService<IPollingGroupMonitor>();
         var writeAudit = provider.GetRequiredService<IWriteAuditStore>();
         var health = provider.GetRequiredService<IDeviceHealthService>();
+        var dashboards = provider.GetRequiredService<IDeviceDashboardService>();
         var polling = provider.GetRequiredService<ISignalPollingService>();
         var runtime = provider.GetRequiredService<IPlcRuntime>();
         var hostedServices = provider.GetServices<IHostedService>().ToArray();
@@ -51,6 +52,7 @@ public class AspNetCoreRegistrationTests
         Assert.IsType<PollingGroupMonitor>(pollingMonitor);
         Assert.IsType<WriteAuditStore>(writeAudit);
         Assert.IsType<DeviceHealthService>(health);
+        Assert.IsType<DeviceDashboardService>(dashboards);
         Assert.IsType<SignalPollingService>(polling);
         Assert.IsType<PlcRuntime>(runtime);
         Assert.Contains(hostedServices, service => service is ScadaNetPollingHostedService);
