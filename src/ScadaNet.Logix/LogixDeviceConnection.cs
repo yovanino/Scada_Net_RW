@@ -3,7 +3,7 @@ using ScadaNet.Protocols;
 
 namespace ScadaNet.Logix;
 
-public sealed class LogixDeviceConnection : IDeviceConnection, IArrayDeviceConnection
+public sealed class LogixDeviceConnection : IDeviceConnection, IArrayDeviceConnection, ITypedDeviceConnection
 {
     private readonly ILogixClient _client;
 
@@ -65,6 +65,19 @@ public sealed class LogixDeviceConnection : IDeviceConnection, IArrayDeviceConne
             cancellationToken);
     }
 
+    public ValueTask WriteAsync(
+        SignalRef signal,
+        object? value,
+        string dataType,
+        CancellationToken cancellationToken = default)
+    {
+        return _client.WriteAsync(
+            signal.Address,
+            ParseDataType(dataType),
+            value,
+            cancellationToken);
+    }
+
     public async ValueTask<SignalValue> ReadArrayAsync(
         SignalRef signal,
         ushort elementCount,
@@ -83,6 +96,7 @@ public sealed class LogixDeviceConnection : IDeviceConnection, IArrayDeviceConne
     public ValueTask WriteArrayAsync(
         SignalRef signal,
         IReadOnlyList<object?> values,
+        string? dataType = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(values);
@@ -95,11 +109,13 @@ public sealed class LogixDeviceConnection : IDeviceConnection, IArrayDeviceConne
                 "Logix array write values cannot be empty.");
         }
 
-        var dataType = InferArrayDataType(values);
+        var resolvedDataType = dataType is null
+            ? InferArrayDataType(values)
+            : ParseDataType(dataType);
 
         return _client.WriteArrayAsync(
             signal.Address,
-            dataType,
+            resolvedDataType,
             values,
             cancellationToken);
     }
@@ -137,5 +153,15 @@ public sealed class LogixDeviceConnection : IDeviceConnection, IArrayDeviceConne
         }
 
         return dataType;
+    }
+
+    private static LogixDataTypeCode ParseDataType(string dataType)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(dataType);
+
+        return Enum.TryParse<LogixDataTypeCode>(dataType, ignoreCase: true, out var parsed)
+            ? parsed
+            : throw new NotSupportedException(
+                $"Logix data type '{dataType}' is not supported.");
     }
 }

@@ -45,6 +45,21 @@ public class ScadaNetSignalRequestsTests
     }
 
     [Fact]
+    public void Write_request_preserves_optional_data_type()
+    {
+        var request = DeserializeWriteRequest("""
+            {
+              "address": "SpeedSetpoint",
+              "value": 1,
+              "dataType": "Real"
+            }
+            """);
+
+        Assert.Equal("Real", request.DataType);
+        Assert.Equal(1, request.GetValue());
+    }
+
+    [Fact]
     public void GetValues_returns_array_values()
     {
         var request = JsonSerializer.Deserialize<ScadaNetWriteArrayRequest>(
@@ -57,6 +72,23 @@ public class ScadaNetSignalRequestsTests
             new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
 
         Assert.Equal([1, 2.5, true, "ready", null], request.GetValues());
+    }
+
+    [Fact]
+    public void Write_array_request_preserves_optional_data_type()
+    {
+        var request = JsonSerializer.Deserialize<ScadaNetWriteArrayRequest>(
+            """
+            {
+              "address": "Speeds",
+              "values": [1, 2, 3],
+              "dataType": "Real"
+            }
+            """,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+
+        Assert.Equal("Real", request.DataType);
+        Assert.Equal([1, 2, 3], request.GetValues());
     }
 
     private static ScadaNetWriteSignalRequest DeserializeWriteRequest(string json)

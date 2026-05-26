@@ -57,6 +57,22 @@ public class LogixDeviceConnectionTests
     }
 
     [Fact]
+    public async Task WriteAsync_uses_explicit_logix_data_type()
+    {
+        var client = new FakeLogixClient(readValue: null);
+        await using var connection = new LogixDeviceConnection("line1-plc", client);
+
+        await connection.WriteAsync(
+            new SignalRef("line1-plc", "SpeedSetpoint"),
+            1,
+            "Real");
+
+        Assert.Equal("SpeedSetpoint", client.LastWriteTag);
+        Assert.Equal(LogixDataTypeCode.Real, client.LastWriteType);
+        Assert.Equal(1, client.LastWriteValue);
+    }
+
+    [Fact]
     public async Task ReadArrayAsync_reads_tag_array_and_returns_signal_value()
     {
         var client = new FakeLogixClient(readValue: null)
@@ -115,6 +131,38 @@ public class LogixDeviceConnectionTests
                 [1, 2.5d]));
 
         Assert.Contains("homogeneous", error.Message);
+        Assert.Null(client.LastWriteTag);
+    }
+
+    [Fact]
+    public async Task WriteArrayAsync_uses_explicit_logix_data_type()
+    {
+        var client = new FakeLogixClient(readValue: null);
+        await using var connection = new LogixDeviceConnection("line1-plc", client);
+
+        await connection.WriteArrayAsync(
+            new SignalRef("line1-plc", "Speeds"),
+            [1, 2, 3],
+            "Real");
+
+        Assert.Equal("Speeds", client.LastWriteTag);
+        Assert.Equal(LogixDataTypeCode.Real, client.LastWriteType);
+        Assert.Equal([1, 2, 3], Assert.IsAssignableFrom<IEnumerable<object?>>(client.LastWriteValue));
+    }
+
+    [Fact]
+    public async Task WriteArrayAsync_rejects_unknown_explicit_data_type()
+    {
+        var client = new FakeLogixClient(readValue: null);
+        await using var connection = new LogixDeviceConnection("line1-plc", client);
+
+        var error = await Assert.ThrowsAsync<NotSupportedException>(async () =>
+            await connection.WriteArrayAsync(
+                new SignalRef("line1-plc", "Values"),
+                [1, 2, 3],
+                "Unsupported"));
+
+        Assert.Contains("Unsupported", error.Message);
         Assert.Null(client.LastWriteTag);
     }
 

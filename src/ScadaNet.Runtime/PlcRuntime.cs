@@ -88,6 +88,16 @@ public sealed class PlcRuntime : IPlcRuntime
         object? value,
         CancellationToken cancellationToken = default)
     {
+        await WriteAsync(signal, value, dataType: null, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async ValueTask WriteAsync(
+        SignalRef signal,
+        object? value,
+        string? dataType,
+        CancellationToken cancellationToken = default)
+    {
         try
         {
             EnsureWriteAllowed(signal);
@@ -96,8 +106,21 @@ public sealed class PlcRuntime : IPlcRuntime
                 .RentAsync(signal.DeviceName, cancellationToken)
                 .ConfigureAwait(false);
 
-            await lease.Connection.WriteAsync(signal, value, cancellationToken)
-                .ConfigureAwait(false);
+            if (dataType is null)
+            {
+                await lease.Connection.WriteAsync(signal, value, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            else if (lease.Connection is ITypedDeviceConnection typedConnection)
+            {
+                await typedConnection.WriteAsync(signal, value, dataType, cancellationToken)
+                    .ConfigureAwait(false);
+            }
+            else
+            {
+                throw new NotSupportedException(
+                    $"Device '{signal.DeviceName}' does not support typed writes.");
+            }
 
             AuditWrite(signal, value, succeeded: true, error: null);
         }
@@ -111,6 +134,16 @@ public sealed class PlcRuntime : IPlcRuntime
     public async ValueTask WriteArrayAsync(
         SignalRef signal,
         IReadOnlyList<object?> values,
+        CancellationToken cancellationToken = default)
+    {
+        await WriteArrayAsync(signal, values, dataType: null, cancellationToken)
+            .ConfigureAwait(false);
+    }
+
+    public async ValueTask WriteArrayAsync(
+        SignalRef signal,
+        IReadOnlyList<object?> values,
+        string? dataType,
         CancellationToken cancellationToken = default)
     {
         try
@@ -127,7 +160,7 @@ public sealed class PlcRuntime : IPlcRuntime
                     $"Device '{signal.DeviceName}' does not support array writes.");
             }
 
-            await arrayConnection.WriteArrayAsync(signal, values, cancellationToken)
+            await arrayConnection.WriteArrayAsync(signal, values, dataType, cancellationToken)
                 .ConfigureAwait(false);
 
             AuditWrite(signal, values, succeeded: true, error: null);

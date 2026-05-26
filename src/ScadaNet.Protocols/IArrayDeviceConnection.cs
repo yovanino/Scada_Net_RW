@@ -12,5 +12,6 @@ public interface IArrayDeviceConnection
     ValueTask WriteArrayAsync(
         SignalRef signal,
         IReadOnlyList<object?> values,
+        string? dataType = null,
         CancellationToken cancellationToken = default);
 }

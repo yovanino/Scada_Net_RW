@@ -125,9 +125,27 @@ public class SignalPollingServiceTests
             throw new NotSupportedException();
         }
 
+        public ValueTask WriteAsync(
+            SignalRef signal,
+            object? value,
+            string? dataType,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public ValueTask WriteArrayAsync(
             SignalRef signal,
             IReadOnlyList<object?> values,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask WriteArrayAsync(
+            SignalRef signal,
+            IReadOnlyList<object?> values,
+            string? dataType,
             CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();

@@ -6,7 +6,8 @@ public sealed record ScadaNetReadManyRequest(IReadOnlyList<string> Addresses);
 
 public sealed record ScadaNetWriteArrayRequest(
     string Address,
-    JsonElement Values)
+    JsonElement Values,
+    string? DataType = null)
 {
     public IReadOnlyList<object?> GetValues()
     {
@@ -24,7 +25,8 @@ public sealed record ScadaNetWriteArrayRequest(
 
 public sealed record ScadaNetWriteSignalRequest(
     string Address,
-    JsonElement Value)
+    JsonElement Value,
+    string? DataType = null)
 {
     public object? GetValue()
     {

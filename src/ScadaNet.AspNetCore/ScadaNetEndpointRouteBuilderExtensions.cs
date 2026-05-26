@@ -155,6 +155,7 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                 await runtime.WriteAsync(
                         new SignalRef(name, request.Address),
                         request.GetValue(),
+                        request.DataType,
                         cancellationToken)
                     .ConfigureAwait(false);
 
@@ -186,6 +187,7 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                 await runtime.WriteArrayAsync(
                         new SignalRef(name, request.Address),
                         request.GetValues(),
+                        request.DataType,
                         cancellationToken)
                     .ConfigureAwait(false);
 

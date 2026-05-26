@@ -110,6 +110,51 @@ public class PlcRuntimeTests
     }
 
     [Fact]
+    public async Task WriteAsync_uses_typed_connection_when_data_type_is_supplied()
+    {
+        var connection = new FakeTypedConnection();
+        var registry = new DeviceRegistry([
+            new DeviceDefinition("line1-plc", "fake", "127.0.0.1")
+            {
+                WritesEnabled = true,
+                WritableAddresses = { "SpeedSetpoint" }
+            }
+        ]);
+        var pool = new FakeConnectionPool(connection);
+        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore(), new WriteAuditStore());
+        var signal = new SignalRef("line1-plc", "SpeedSetpoint");
+
+        await runtime.WriteAsync(signal, 1, "Real");
+
+        Assert.Equal(signal, connection.LastTypedWrittenSignal);
+        Assert.Equal(1, connection.LastTypedWrittenValue);
+        Assert.Equal("Real", connection.LastTypedWrittenDataType);
+    }
+
+    [Fact]
+    public async Task WriteArrayAsync_passes_data_type_to_array_connection()
+    {
+        var connection = new FakeArrayConnection();
+        var registry = new DeviceRegistry([
+            new DeviceDefinition("line1-plc", "fake", "127.0.0.1")
+            {
+                WritesEnabled = true,
+                WritableAddresses = { "Speeds" }
+            }
+        ]);
+        var pool = new FakeConnectionPool(connection);
+        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore(), new WriteAuditStore());
+        var signal = new SignalRef("line1-plc", "Speeds");
+        IReadOnlyList<object?> values = [1, 2, 3];
+
+        await runtime.WriteArrayAsync(signal, values, "Real");
+
+        Assert.Equal(signal, connection.LastArrayWrittenSignal);
+        Assert.Equal(values, connection.LastArrayWrittenValue);
+        Assert.Equal("Real", connection.LastArrayWrittenDataType);
+    }
+
+    [Fact]
     public async Task ReadArrayAsync_rejects_connections_without_array_support()
     {
         var connection = new FakeConnection();
@@ -264,6 +309,54 @@ public class PlcRuntimeTests
         }
     }
 
+    private sealed class FakeTypedConnection : IDeviceConnection, ITypedDeviceConnection
+    {
+        public DeviceIdentity Identity { get; } = new("Test", "Fake", null, null, null);
+        public DeviceCapabilities Capabilities => DeviceCapabilities.Write;
+        public SignalRef? LastTypedWrittenSignal { get; private set; }
+        public object? LastTypedWrittenValue { get; private set; }
+        public string? LastTypedWrittenDataType { get; private set; }
+
+        public ValueTask DisposeAsync()
+        {
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask<SignalValue> ReadAsync(
+            SignalRef signal,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask<IReadOnlyList<SignalValue>> ReadManyAsync(
+            IReadOnlyList<SignalRef> signals,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask WriteAsync(
+            SignalRef signal,
+            object? value,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask WriteAsync(
+            SignalRef signal,
+            object? value,
+            string dataType,
+            CancellationToken cancellationToken = default)
+        {
+            LastTypedWrittenSignal = signal;
+            LastTypedWrittenValue = value;
+            LastTypedWrittenDataType = dataType;
+            return ValueTask.CompletedTask;
+        }
+    }
+
     private sealed class FakeArrayConnection : IDeviceConnection, IArrayDeviceConnection
     {
         public DeviceIdentity Identity { get; } = new("Test", "Fake", null, null, null);
@@ -277,6 +370,7 @@ public class PlcRuntimeTests
         public ushort? LastArrayReadCount { get; private set; }
         public SignalRef? LastArrayWrittenSignal { get; private set; }
         public IReadOnlyList<object?>? LastArrayWrittenValue { get; private set; }
+        public string? LastArrayWrittenDataType { get; private set; }
 
         public ValueTask DisposeAsync()
         {
@@ -323,10 +417,12 @@ public class PlcRuntimeTests
         public ValueTask WriteArrayAsync(
             SignalRef signal,
             IReadOnlyList<object?> values,
+            string? dataType = null,
             CancellationToken cancellationToken = default)
         {
             LastArrayWrittenSignal = signal;
             LastArrayWrittenValue = values;
+            LastArrayWrittenDataType = dataType;
             return ValueTask.CompletedTask;
         }
     }

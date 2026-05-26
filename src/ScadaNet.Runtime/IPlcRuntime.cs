@@ -22,8 +22,20 @@ public interface IPlcRuntime
         object? value,
         CancellationToken cancellationToken = default);
 
+    ValueTask WriteAsync(
+        SignalRef signal,
+        object? value,
+        string? dataType,
+        CancellationToken cancellationToken = default);
+
     ValueTask WriteArrayAsync(
         SignalRef signal,
         IReadOnlyList<object?> values,
+        CancellationToken cancellationToken = default);
+
+    ValueTask WriteArrayAsync(
+        SignalRef signal,
+        IReadOnlyList<object?> values,
+        string? dataType,
         CancellationToken cancellationToken = default);
 }
