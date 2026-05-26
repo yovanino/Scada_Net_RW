@@ -86,6 +86,20 @@ public class AspNetCoreRegistrationTests
     }
 
     [Fact]
+    public void AddScadaNet_validates_configuration()
+    {
+        var services = new ServiceCollection();
+
+        var error = Assert.Throws<ScadaNetOptionsValidationException>(() =>
+            services.AddScadaNet(options =>
+            {
+                options.AddDevice("line1-plc", "logix", address: string.Empty);
+            }));
+
+        Assert.Contains(error.Errors, item => item.Contains("address cannot be empty"));
+    }
+
+    [Fact]
     public void AddScadaNet_binds_devices_from_configuration()
     {
         var services = new ServiceCollection();

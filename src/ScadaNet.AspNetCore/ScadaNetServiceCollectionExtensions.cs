@@ -32,6 +32,8 @@ public static class ScadaNetServiceCollectionExtensions
         IServiceCollection services,
         ScadaNetOptions options)
     {
+        ScadaNetOptionsValidator.Validate(options);
+
         services.AddLogging();
         services.AddSingleton(options);
         services.AddSingleton<IDeviceRegistry>(_ => new DeviceRegistry(options.Devices));
