@@ -90,6 +90,24 @@ public sealed record ScadaNetWriteNamedSignalRequest(
     }
 }
 
+public sealed record ScadaNetWriteNamedArrayRequest(
+    JsonElement Values,
+    string? DataType = null)
+{
+    public IReadOnlyList<object?> GetValues()
+    {
+        if (Values.ValueKind != JsonValueKind.Array)
+        {
+            throw new NotSupportedException(
+                $"JSON value kind '{Values.ValueKind}' is not supported for array writes.");
+        }
+
+        return Values.EnumerateArray()
+            .Select(ScadaNetJsonSignalValue.ToObject)
+            .ToArray();
+    }
+}
+
 internal static class ScadaNetSignalRequestValidation
 {
     public static string ToSignalName(

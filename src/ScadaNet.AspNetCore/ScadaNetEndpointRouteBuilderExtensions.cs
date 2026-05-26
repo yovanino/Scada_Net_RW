@@ -267,6 +267,38 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             }
         });
 
+        group.MapGet("/devices/{name}/signals/{signalName}/read-array", async (
+            string name,
+            string signalName,
+            ushort count,
+            IDeviceSignalResolver signals,
+            IPlcRuntime runtime,
+            CancellationToken cancellationToken) =>
+        {
+            if (!signals.TryResolve(name, signalName, out var resolution))
+            {
+                return Results.NotFound(new
+                {
+                    Message = $"Signal '{signalName}' is not registered for device '{name}'."
+                });
+            }
+
+            try
+            {
+                var value = await runtime.ReadArrayAsync(
+                        resolution.Signal,
+                        count,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                return Results.Ok(value);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                return ScadaNetHttpErrors.ToResult(ex);
+            }
+        });
+
         group.MapPost("/devices/{name}/signals/{signalName}/write", async (
             string name,
             string signalName,
@@ -296,6 +328,47 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                 await runtime.WriteAsync(
                         resolution.Signal,
                         request.GetValue(),
+                        request.DataType ?? resolution.Definition.DataType,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                return Results.Accepted();
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                return ScadaNetHttpErrors.ToResult(ex);
+            }
+        });
+
+        group.MapPost("/devices/{name}/signals/{signalName}/write-array", async (
+            string name,
+            string signalName,
+            ScadaNetWriteNamedArrayRequest request,
+            IDeviceSignalResolver signals,
+            IPlcRuntime runtime,
+            CancellationToken cancellationToken) =>
+        {
+            if (!signals.TryResolve(name, signalName, out var resolution))
+            {
+                return Results.NotFound(new
+                {
+                    Message = $"Signal '{signalName}' is not registered for device '{name}'."
+                });
+            }
+
+            if (!resolution.Definition.Writable)
+            {
+                return Results.BadRequest(new
+                {
+                    Message = $"Signal '{signalName}' is not configured as writable for device '{name}'."
+                });
+            }
+
+            try
+            {
+                await runtime.WriteArrayAsync(
+                        resolution.Signal,
+                        request.GetValues(),
                         request.DataType ?? resolution.Definition.DataType,
                         cancellationToken)
                     .ConfigureAwait(false);

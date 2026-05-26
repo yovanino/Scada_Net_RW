@@ -144,6 +144,22 @@ public class ScadaNetSignalRequestsTests
     }
 
     [Fact]
+    public void Write_named_array_request_returns_array_values()
+    {
+        var request = JsonSerializer.Deserialize<ScadaNetWriteNamedArrayRequest>(
+            """
+            {
+              "values": [1, 2.5, true, "ready"],
+              "dataType": "Real"
+            }
+            """,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+
+        Assert.Equal("Real", request.DataType);
+        Assert.Equal([1, 2.5, true, "ready"], request.GetValues());
+    }
+
+    [Fact]
     public void Write_array_request_rejects_empty_address()
     {
         using var document = JsonDocument.Parse("[1,2,3]");
