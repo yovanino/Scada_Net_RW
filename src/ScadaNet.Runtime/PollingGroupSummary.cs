@@ -10,5 +10,8 @@ public sealed record PollingGroupSummary(
     bool HasStatus,
     bool? Healthy,
     DateTimeOffset? LastRun,
+    TimeSpan? LastRunAge,
     TimeSpan? Duration,
+    TimeSpan StaleAfter,
+    bool IsStale,
     string? Error);
