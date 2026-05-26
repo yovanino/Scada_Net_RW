@@ -156,6 +156,16 @@ public sealed class PlcRuntime : IPlcRuntime
     {
         try
         {
+            ArgumentNullException.ThrowIfNull(values);
+
+            if (values.Count == 0)
+            {
+                throw new ArgumentOutOfRangeException(
+                    nameof(values),
+                    values.Count,
+                    "Array write values cannot be empty.");
+            }
+
             EnsureWriteAllowed(signal);
 
             await using var lease = await _connections

@@ -155,6 +155,33 @@ public class PlcRuntimeTests
     }
 
     [Fact]
+    public async Task WriteArrayAsync_rejects_empty_values_before_renting_connection_and_audits()
+    {
+        var connection = new FakeArrayConnection();
+        var registry = new DeviceRegistry([
+            new DeviceDefinition("line1-plc", "fake", "127.0.0.1")
+            {
+                WritesEnabled = true,
+                WritableAddresses = { "Counters" }
+            }
+        ]);
+        var pool = new FakeConnectionPool(connection);
+        var audit = new WriteAuditStore();
+        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore(), audit);
+        var signal = new SignalRef("line1-plc", "Counters");
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
+            await runtime.WriteArrayAsync(signal, []));
+
+        Assert.Null(pool.LastDeviceName);
+
+        var record = Assert.Single(audit.GetRecent());
+        Assert.False(record.Succeeded);
+        Assert.Equal(signal, record.Signal);
+        Assert.Contains("cannot be empty", record.Error);
+    }
+
+    [Fact]
     public async Task ReadArrayAsync_rejects_connections_without_array_support()
     {
         var connection = new FakeConnection();
