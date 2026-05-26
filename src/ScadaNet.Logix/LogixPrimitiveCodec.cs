@@ -32,6 +32,44 @@ public static class LogixPrimitiveCodec
         };
     }
 
+    public static IReadOnlyList<object?> DecodeMany(
+        LogixDataTypeCode type,
+        ReadOnlySpan<byte> data,
+        ushort elementCount)
+    {
+        if (elementCount == 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(elementCount),
+                elementCount,
+                "Logix primitive decode element count must be greater than zero.");
+        }
+
+        var values = new object?[elementCount];
+        var elementSize = GetFixedElementSize(type);
+
+        if (elementSize is null)
+        {
+            throw new NotSupportedException($"Logix type '{type}' cannot be decoded as a fixed-size array.");
+        }
+
+        var requiredLength = elementSize.Value * elementCount;
+        if (data.Length < requiredLength)
+        {
+            throw new ArgumentException(
+                $"Logix data contains {data.Length} bytes but {requiredLength} bytes are required.",
+                nameof(data));
+        }
+
+        for (var index = 0; index < values.Length; index++)
+        {
+            var offset = index * elementSize.Value;
+            values[index] = Decode(type, data.Slice(offset, elementSize.Value));
+        }
+
+        return values;
+    }
+
     private static byte[] EncodeDint(int value)
     {
         var data = new byte[sizeof(int)];
@@ -81,6 +119,18 @@ public static class LogixPrimitiveCodec
         }
 
         return Encoding.ASCII.GetString(data.Slice(sizeof(int), length));
+    }
+
+    private static int? GetFixedElementSize(LogixDataTypeCode type)
+    {
+        return type switch
+        {
+            LogixDataTypeCode.Bool => sizeof(byte),
+            LogixDataTypeCode.Dint => sizeof(int),
+            LogixDataTypeCode.Real => sizeof(float),
+            LogixDataTypeCode.String => sizeof(int) + LogixStringMaxLength,
+            _ => null
+        };
     }
 
     private static bool AsciiOnly(string value)

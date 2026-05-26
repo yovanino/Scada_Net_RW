@@ -35,18 +35,43 @@ public sealed class LogixClient : ILogixClient
         CancellationToken cancellationToken = default)
     {
         var value = await ReadAsync(tagName, cancellationToken).ConfigureAwait(false);
+        return ConvertValue<T>(tagName, value);
+    }
 
+    public async ValueTask<IReadOnlyList<T>> ReadArrayAsync<T>(
+        string tagName,
+        ushort elementCount,
+        CancellationToken cancellationToken = default)
+    {
+        if (elementCount == 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(elementCount),
+                elementCount,
+                "Logix array read element count must be greater than zero.");
+        }
+
+        var request = LogixMessageCodec.EncodeReadTag(new LogixReadTagRequest(tagName, elementCount));
+        var responseMessage = await _transport.SendAsync(request, cancellationToken)
+            .ConfigureAwait(false);
+        var response = LogixMessageCodec.DecodeReadTagResponse(responseMessage);
+
+        EnsureSucceeded(response.Status, $"ReadTag '{tagName}' failed");
+
+        var values = response.DecodeValues(elementCount);
+        return values.Select(value => ConvertValue<T>(tagName, value)).ToArray();
+    }
+
+    private static T ConvertValue<T>(string tagName, object? value)
+    {
         if (value is T typed)
         {
             return typed;
         }
 
-        if (value is null)
-        {
-            throw new ScadaNetException($"ReadTag '{tagName}' returned no value.");
-        }
-
-        return (T)Convert.ChangeType(value, typeof(T), CultureInfo.InvariantCulture);
+        return value is null
+            ? throw new ScadaNetException($"ReadTag '{tagName}' returned no value.")
+            : (T)Convert.ChangeType(value, typeof(T), CultureInfo.InvariantCulture);
     }
 
     public async ValueTask WriteAsync(

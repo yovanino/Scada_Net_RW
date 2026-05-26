@@ -25,6 +25,28 @@ public class LogixPrimitiveCodecTests
     }
 
     [Fact]
+    public void DecodeMany_decodes_dint_values()
+    {
+        byte[] data =
+        [
+            0x01, 0x00, 0x00, 0x00,
+            0x02, 0x00, 0x00, 0x00,
+            0x03, 0x00, 0x00, 0x00
+        ];
+
+        var decoded = LogixPrimitiveCodec.DecodeMany(LogixDataTypeCode.Dint, data, 3);
+
+        Assert.Equal([1, 2, 3], decoded);
+    }
+
+    [Fact]
+    public void DecodeMany_rejects_incomplete_data()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            LogixPrimitiveCodec.DecodeMany(LogixDataTypeCode.Dint, [0x01, 0x00], 1));
+    }
+
+    [Fact]
     public void Encode_and_decode_real_little_endian()
     {
         var encoded = LogixPrimitiveCodec.Encode(LogixDataTypeCode.Real, 12.5f);

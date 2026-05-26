@@ -11,4 +11,11 @@ public sealed record LogixReadTagResponse(
             ? LogixPrimitiveCodec.Decode(DataType.Value, Data)
             : null;
     }
+
+    public IReadOnlyList<object?> DecodeValues(ushort elementCount)
+    {
+        return DataType.HasValue
+            ? LogixPrimitiveCodec.DecodeMany(DataType.Value, Data, elementCount)
+            : [];
+    }
 }

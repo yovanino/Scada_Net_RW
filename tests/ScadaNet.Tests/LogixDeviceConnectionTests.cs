@@ -91,6 +91,14 @@ public class LogixDeviceConnectionTests
             return (T)value!;
         }
 
+        public ValueTask<IReadOnlyList<T>> ReadArrayAsync<T>(
+            string tagName,
+            ushort elementCount,
+            CancellationToken cancellationToken = default)
+        {
+            return ValueTask.FromResult<IReadOnlyList<T>>([]);
+        }
+
         public ValueTask WriteAsync(
             string tagName,
             LogixDataTypeCode dataType,

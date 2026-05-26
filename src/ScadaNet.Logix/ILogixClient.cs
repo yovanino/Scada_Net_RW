@@ -10,6 +10,11 @@ public interface ILogixClient : IAsyncDisposable
         string tagName,
         CancellationToken cancellationToken = default);
 
+    ValueTask<IReadOnlyList<T>> ReadArrayAsync<T>(
+        string tagName,
+        ushort elementCount,
+        CancellationToken cancellationToken = default);
+
     ValueTask WriteAsync(
         string tagName,
         LogixDataTypeCode dataType,

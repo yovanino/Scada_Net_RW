@@ -25,6 +25,37 @@ public class LogixClientTests
     }
 
     [Fact]
+    public async Task ReadArrayAsync_sends_read_tag_request_with_element_count_and_decodes_values()
+    {
+        var transport = new FakeLogixTransport(
+            [
+                0xCC, 0x00, 0x00, 0x00,
+                0xC4, 0x00,
+                0x01, 0x00, 0x00, 0x00,
+                0x02, 0x00, 0x00, 0x00,
+                0x03, 0x00, 0x00, 0x00
+            ]);
+        await using var client = new LogixClient(transport);
+
+        var values = await client.ReadArrayAsync<int>("Counters", 3);
+
+        Assert.Equal([1, 2, 3], values);
+        Assert.Equal(
+            LogixMessageCodec.EncodeReadTag(new LogixReadTagRequest("Counters", 3)),
+            transport.LastMessage);
+    }
+
+    [Fact]
+    public async Task ReadArrayAsync_rejects_zero_element_count()
+    {
+        var transport = new FakeLogixTransport([]);
+        await using var client = new LogixClient(transport);
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
+            await client.ReadArrayAsync<int>("Counters", 0));
+    }
+
+    [Fact]
     public async Task WriteAsync_sends_write_tag_request()
     {
         var transport = new FakeLogixTransport([0xCD, 0x00, 0x00, 0x00]);
