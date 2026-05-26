@@ -5,6 +5,7 @@
     <ProjectReference Include="..\ScadaNet.Model\ScadaNet.Model.csproj" />
     <ProjectReference Include="..\ScadaNet.Protocols\ScadaNet.Protocols.csproj" />
     <ProjectReference Include="..\ScadaNet.Cip\ScadaNet.Cip.csproj" />
+    <ProjectReference Include="..\ScadaNet.EtherNetIp\ScadaNet.EtherNetIp.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
