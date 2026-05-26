@@ -50,6 +50,30 @@ public static class ScadaNetOptionsValidator
             {
                 errors.Add($"Device '{device.Name}' contains an empty writable address.");
             }
+
+            var signalNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var signalAddresses = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var signal in device.Signals)
+            {
+                if (string.IsNullOrWhiteSpace(signal.Name))
+                {
+                    errors.Add($"Device '{device.Name}' contains a signal with an empty name.");
+                }
+                else if (!signalNames.Add(signal.Name))
+                {
+                    errors.Add($"Device '{device.Name}' contains signal '{signal.Name}' more than once.");
+                }
+
+                if (string.IsNullOrWhiteSpace(signal.Address))
+                {
+                    errors.Add($"Device '{device.Name}' signal '{signal.Name}' address cannot be empty.");
+                }
+                else if (!signalAddresses.Add(signal.Address))
+                {
+                    errors.Add($"Device '{device.Name}' contains signal address '{signal.Address}' more than once.");
+                }
+            }
         }
 
         foreach (var group in options.PollingGroups)

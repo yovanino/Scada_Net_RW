@@ -41,6 +41,39 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             return Results.Ok(result);
         });
 
+        group.MapGet("/devices/{name}/signals/definitions", (
+            string name,
+            IDeviceRegistry registry) =>
+        {
+            return registry.TryGet(name, out var device)
+                ? Results.Ok(device.Signals)
+                : Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
+        });
+
+        group.MapGet("/devices/{name}/signals/definitions/{signalName}", (
+            string name,
+            string signalName,
+            IDeviceRegistry registry) =>
+        {
+            if (!registry.TryGet(name, out var device))
+            {
+                return Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
+            }
+
+            return device.TryGetSignal(signalName, out var signal)
+                ? Results.Ok(signal)
+                : Results.NotFound(new
+                {
+                    Message = $"Signal '{signalName}' is not registered for device '{name}'."
+                });
+        });
+
         group.MapGet("/connections/pool", (IDeviceConnectionPool connections) =>
         {
             return Results.Ok(connections.GetStatus());

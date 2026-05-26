@@ -26,6 +26,7 @@ public sealed record DeviceDefinition
     public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(3);
     public bool WritesEnabled { get; init; }
     public IList<string> WritableAddresses { get; } = [];
+    public IList<DeviceSignalDefinition> Signals { get; } = [];
 
     public DeviceConnectionOptions ToConnectionOptions()
     {
@@ -56,5 +57,15 @@ public sealed record DeviceDefinition
                     writable,
                     address,
                     StringComparison.OrdinalIgnoreCase)));
+    }
+
+    public bool TryGetSignal(string name, out DeviceSignalDefinition signal)
+    {
+        signal = Signals.FirstOrDefault(signal => string.Equals(
+            signal.Name,
+            name,
+            StringComparison.OrdinalIgnoreCase))!;
+
+        return signal is not null;
     }
 }

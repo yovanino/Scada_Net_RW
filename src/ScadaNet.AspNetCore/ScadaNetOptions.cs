@@ -55,4 +55,34 @@ public sealed class ScadaNetOptions
 
         PollingGroups.Add(group);
     }
+
+    public void AddSignal(
+        string deviceName,
+        string name,
+        string address,
+        string? dataType = null,
+        string? unit = null,
+        string? description = null,
+        bool writable = false)
+    {
+        var device = Devices.FirstOrDefault(device => string.Equals(
+            device.Name,
+            deviceName,
+            StringComparison.OrdinalIgnoreCase));
+
+        if (device is null)
+        {
+            throw new InvalidOperationException($"Device '{deviceName}' is not registered.");
+        }
+
+        device.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = name,
+            Address = address,
+            DataType = dataType,
+            Unit = unit,
+            Description = description,
+            Writable = writable
+        });
+    }
 }

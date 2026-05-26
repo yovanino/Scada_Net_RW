@@ -29,6 +29,26 @@ public class DeviceRegistryTests
     }
 
     [Fact]
+    public void DeviceDefinition_finds_signal_definitions_by_name_case_insensitively()
+    {
+        var device = new DeviceDefinition("line1-plc", "ethernetip", "192.168.0.10");
+        device.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "production-counter",
+            Address = "ProductionCounter",
+            DataType = "DINT",
+            Unit = "parts"
+        });
+
+        var found = device.TryGetSignal("PRODUCTION-COUNTER", out var signal);
+
+        Assert.True(found);
+        Assert.Equal("ProductionCounter", signal.Address);
+        Assert.Equal("DINT", signal.DataType);
+        Assert.Equal("parts", signal.Unit);
+    }
+
+    [Fact]
     public void DeviceDefinition_creates_connection_options_and_probe_request()
     {
         var device = new DeviceDefinition("line1-plc", "ethernetip", "192.168.0.10")

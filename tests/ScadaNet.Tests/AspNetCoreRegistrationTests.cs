@@ -119,6 +119,12 @@ public class AspNetCoreRegistrationTests
             ["ScadaNet:Devices:0:Timeout"] = "00:00:02",
             ["ScadaNet:Devices:0:WritesEnabled"] = "true",
             ["ScadaNet:Devices:0:WritableAddresses:0"] = "ResetCommand",
+            ["ScadaNet:Devices:0:Signals:0:Name"] = "production-counter",
+            ["ScadaNet:Devices:0:Signals:0:Address"] = "ProductionCounter",
+            ["ScadaNet:Devices:0:Signals:0:DataType"] = "DINT",
+            ["ScadaNet:Devices:0:Signals:0:Unit"] = "parts",
+            ["ScadaNet:Devices:0:Signals:0:Description"] = "Good parts counter",
+            ["ScadaNet:Devices:0:Signals:0:Writable"] = "false",
             ["ScadaNet:PollingGroups:0:Name"] = "line1-fast",
             ["ScadaNet:PollingGroups:0:DeviceName"] = "line1-plc",
             ["ScadaNet:PollingGroups:0:Interval"] = "00:00:01",
@@ -140,6 +146,13 @@ public class AspNetCoreRegistrationTests
         Assert.Equal(TimeSpan.FromSeconds(2), device.Timeout);
         Assert.True(device.WritesEnabled);
         Assert.Equal(["ResetCommand"], device.WritableAddresses);
+        var signal = Assert.Single(device.Signals);
+        Assert.Equal("production-counter", signal.Name);
+        Assert.Equal("ProductionCounter", signal.Address);
+        Assert.Equal("DINT", signal.DataType);
+        Assert.Equal("parts", signal.Unit);
+        Assert.Equal("Good parts counter", signal.Description);
+        Assert.False(signal.Writable);
 
         var options = provider.GetRequiredService<ScadaNetOptions>();
         var group = Assert.Single(options.PollingGroups);
@@ -151,5 +164,21 @@ public class AspNetCoreRegistrationTests
         var pollingGroups = provider.GetRequiredService<IPollingGroupRegistry>();
         Assert.True(pollingGroups.TryGet("LINE1-FAST", out var registeredGroup));
         Assert.Equal("line1-plc", registeredGroup.DeviceName);
+    }
+
+    [Fact]
+    public void AddScadaNet_validates_duplicate_signal_names()
+    {
+        var services = new ServiceCollection();
+
+        var error = Assert.Throws<ScadaNetOptionsValidationException>(() =>
+            services.AddScadaNet(options =>
+            {
+                options.AddDevice("line1-plc", "logix", "192.168.0.10");
+                options.AddSignal("line1-plc", "counter", "ProductionCounter");
+                options.AddSignal("line1-plc", "COUNTER", "OtherCounter");
+            }));
+
+        Assert.Contains(error.Errors, item => item.Contains("signal 'COUNTER' more than once"));
     }
 }
