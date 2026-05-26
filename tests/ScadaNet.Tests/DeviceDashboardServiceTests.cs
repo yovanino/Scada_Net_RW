@@ -51,6 +51,27 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public void GetAll_returns_dashboards_ordered_by_device_name()
+    {
+        var line2 = new DeviceDefinition("line2-plc", "fake", "127.0.0.2");
+        var line1 = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        var registry = new DeviceRegistry([line2, line1]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([]), statuses),
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var dashboards = service.GetAll();
+
+        Assert.Equal(["line1-plc", "line2-plc"], dashboards.Select(dashboard => dashboard.Device.Name));
+    }
+
+    [Fact]
     public void TryGet_returns_false_for_unknown_device()
     {
         var registry = new DeviceRegistry([]);

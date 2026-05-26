@@ -22,6 +22,17 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         _snapshots = snapshots;
     }
 
+    public IReadOnlyList<DeviceDashboard> GetAll()
+    {
+        return _devices.Devices
+            .OrderBy(device => device.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(device => TryGet(device.Name, out var dashboard)
+                ? dashboard
+                : null)
+            .Where(dashboard => dashboard is not null)
+            .ToArray()!;
+    }
+
     public bool TryGet(string deviceName, out DeviceDashboard dashboard)
     {
         if (!_devices.TryGet(deviceName, out var device) ||
