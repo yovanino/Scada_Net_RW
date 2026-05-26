@@ -24,6 +24,7 @@ public class AspNetCoreRegistrationTests
 
         var discovery = provider.GetRequiredService<IDiscoveryService>();
         var registry = provider.GetRequiredService<IDeviceRegistry>();
+        var signalResolver = provider.GetRequiredService<IDeviceSignalResolver>();
         var connectionFactory = provider.GetRequiredService<IDeviceConnectionFactory>();
         var connectionPool = provider.GetRequiredService<IDeviceConnectionPool>();
         var snapshots = provider.GetRequiredService<ISignalSnapshotStore>();
@@ -39,6 +40,7 @@ public class AspNetCoreRegistrationTests
 
         Assert.IsType<DiscoveryService>(discovery);
         Assert.IsType<DeviceRegistry>(registry);
+        Assert.IsType<DeviceSignalResolver>(signalResolver);
         Assert.IsType<DeviceConnectionFactory>(connectionFactory);
         Assert.IsType<DeviceConnectionPool>(connectionPool);
         Assert.IsType<SignalSnapshotStore>(snapshots);

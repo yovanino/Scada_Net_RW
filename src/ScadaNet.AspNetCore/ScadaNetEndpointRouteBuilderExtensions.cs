@@ -139,6 +139,36 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             }
         });
 
+        group.MapGet("/devices/{name}/signals/{signalName}/read", async (
+            string name,
+            string signalName,
+            IDeviceSignalResolver signals,
+            IPlcRuntime runtime,
+            CancellationToken cancellationToken) =>
+        {
+            if (!signals.TryResolve(name, signalName, out var resolution))
+            {
+                return Results.NotFound(new
+                {
+                    Message = $"Signal '{signalName}' is not registered for device '{name}'."
+                });
+            }
+
+            try
+            {
+                var value = await runtime.ReadAsync(
+                        resolution.Signal,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                return Results.Ok(value);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                return ScadaNetHttpErrors.ToResult(ex);
+            }
+        });
+
         group.MapPost("/devices/{name}/signals/read", async (
             string name,
             ScadaNetReadManyRequest request,
@@ -194,6 +224,47 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                     .ConfigureAwait(false);
 
                 return Results.Ok(value);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                return ScadaNetHttpErrors.ToResult(ex);
+            }
+        });
+
+        group.MapPost("/devices/{name}/signals/{signalName}/write", async (
+            string name,
+            string signalName,
+            ScadaNetWriteNamedSignalRequest request,
+            IDeviceSignalResolver signals,
+            IPlcRuntime runtime,
+            CancellationToken cancellationToken) =>
+        {
+            if (!signals.TryResolve(name, signalName, out var resolution))
+            {
+                return Results.NotFound(new
+                {
+                    Message = $"Signal '{signalName}' is not registered for device '{name}'."
+                });
+            }
+
+            if (!resolution.Definition.Writable)
+            {
+                return Results.BadRequest(new
+                {
+                    Message = $"Signal '{signalName}' is not configured as writable for device '{name}'."
+                });
+            }
+
+            try
+            {
+                await runtime.WriteAsync(
+                        resolution.Signal,
+                        request.GetValue(),
+                        request.DataType ?? resolution.Definition.DataType,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                return Results.Accepted();
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {

@@ -62,6 +62,16 @@ public sealed record ScadaNetWriteSignalRequest(
     }
 }
 
+public sealed record ScadaNetWriteNamedSignalRequest(
+    JsonElement Value,
+    string? DataType = null)
+{
+    public object? GetValue()
+    {
+        return ScadaNetJsonSignalValue.ToObject(Value);
+    }
+}
+
 internal static class ScadaNetSignalRequestValidation
 {
     public static SignalRef ToSignalRef(
