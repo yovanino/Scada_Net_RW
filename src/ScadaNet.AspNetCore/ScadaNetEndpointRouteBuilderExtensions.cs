@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using ScadaNet.Model;
 using ScadaNet.Runtime;
 
 namespace ScadaNet.AspNetCore;
@@ -38,6 +39,78 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                 .ConfigureAwait(false);
 
             return Results.Ok(result);
+        });
+
+        group.MapGet("/devices/{name}/signals/read", async (
+            string name,
+            string address,
+            IDeviceRegistry registry,
+            IPlcRuntime runtime,
+            CancellationToken cancellationToken) =>
+        {
+            if (!registry.TryGet(name, out _))
+            {
+                return Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
+            }
+
+            var value = await runtime.ReadAsync(
+                    new SignalRef(name, address),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            return Results.Ok(value);
+        });
+
+        group.MapPost("/devices/{name}/signals/read", async (
+            string name,
+            ScadaNetReadManyRequest request,
+            IDeviceRegistry registry,
+            IPlcRuntime runtime,
+            CancellationToken cancellationToken) =>
+        {
+            if (!registry.TryGet(name, out _))
+            {
+                return Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
+            }
+
+            var signals = request.Addresses
+                .Select(address => new SignalRef(name, address))
+                .ToArray();
+
+            var values = await runtime.ReadManyAsync(signals, cancellationToken)
+                .ConfigureAwait(false);
+
+            return Results.Ok(values);
+        });
+
+        group.MapPost("/devices/{name}/signals/write", async (
+            string name,
+            ScadaNetWriteSignalRequest request,
+            IDeviceRegistry registry,
+            IPlcRuntime runtime,
+            CancellationToken cancellationToken) =>
+        {
+            if (!registry.TryGet(name, out _))
+            {
+                return Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
+            }
+
+            await runtime.WriteAsync(
+                    new SignalRef(name, request.Address),
+                    request.GetValue(),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            return Results.Accepted();
         });
 
         return group;

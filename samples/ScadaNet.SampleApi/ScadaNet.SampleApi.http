@@ -14,3 +14,30 @@ GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/discovery
 Accept: application/json
 
 ###
+
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/read?address=ProductionCounter
+Accept: application/json
+
+###
+
+POST {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/read
+Content-Type: application/json
+
+{
+  "addresses": [
+    "ProductionCounter",
+    "Motor.Speed"
+  ]
+}
+
+###
+
+POST {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/write
+Content-Type: application/json
+
+{
+  "address": "ResetCommand",
+  "value": true
+}
+
+###
