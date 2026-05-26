@@ -20,6 +20,11 @@ Accept: application/json
 
 ###
 
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/production-counter/read
+Accept: application/json
+
+###
+
 POST {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/read
 Content-Type: application/json
 
@@ -27,6 +32,18 @@ Content-Type: application/json
   "addresses": [
     "ProductionCounter",
     "Motor.Speed"
+  ]
+}
+
+###
+
+POST {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/read-named
+Content-Type: application/json
+
+{
+  "signalNames": [
+    "production-counter",
+    "motor-speed"
   ]
 }
 
@@ -42,12 +59,31 @@ Content-Type: application/json
 
 ###
 
+POST {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/reset-command/write
+Content-Type: application/json
+
+{
+  "value": true
+}
+
+###
+
 GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/snapshot
 Accept: application/json
 
 ###
 
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/snapshot-named
+Accept: application/json
+
+###
+
 GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/snapshot/ProductionCounter
+Accept: application/json
+
+###
+
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/production-counter/snapshot
 Accept: application/json
 
 ###

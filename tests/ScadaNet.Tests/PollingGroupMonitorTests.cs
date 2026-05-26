@@ -53,6 +53,7 @@ public class PollingGroupMonitorTests
         Assert.True(summary.Healthy);
         Assert.Equal(2, summary.ConfiguredSignalCount);
         Assert.Equal(["ProductionCounter", "Motor.Speed"], summary.Addresses);
+        Assert.Empty(summary.SignalNames);
         Assert.Equal(TimeSpan.FromMilliseconds(12), summary.Duration);
         Assert.False(summary.IsStale);
         Assert.Null(summary.Error);

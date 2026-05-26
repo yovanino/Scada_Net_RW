@@ -49,7 +49,10 @@ public static class ScadaNetServiceCollectionExtensions
         services.AddSingleton<IDeviceHealthService, DeviceHealthService>();
         services.AddSingleton<IDiscoveryService, DiscoveryService>();
         services.AddSingleton<IPlcRuntime, PlcRuntime>();
-        services.AddSingleton<ISignalPollingService, SignalPollingService>();
+        services.AddSingleton<ISignalPollingService>(provider => new SignalPollingService(
+            provider.GetRequiredService<IPlcRuntime>(),
+            provider.GetRequiredService<IPollingStatusStore>(),
+            provider.GetRequiredService<IDeviceSignalResolver>()));
         services.AddHostedService<ScadaNetPollingHostedService>();
         return services;
     }

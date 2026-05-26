@@ -133,7 +133,8 @@ public class AspNetCoreRegistrationTests
             ["ScadaNet:PollingGroups:0:DeviceName"] = "line1-plc",
             ["ScadaNet:PollingGroups:0:Interval"] = "00:00:01",
             ["ScadaNet:PollingGroups:0:Addresses:0"] = "ProductionCounter",
-            ["ScadaNet:PollingGroups:0:Addresses:1"] = "Motor.Speed"
+            ["ScadaNet:PollingGroups:0:Addresses:1"] = "Motor.Speed",
+            ["ScadaNet:PollingGroups:0:SignalNames:0"] = "production-counter"
         });
 
         services.AddScadaNet(configuration);
@@ -164,6 +165,7 @@ public class AspNetCoreRegistrationTests
         Assert.Equal("line1-plc", group.DeviceName);
         Assert.Equal(TimeSpan.FromSeconds(1), group.Interval);
         Assert.Equal(["ProductionCounter", "Motor.Speed"], group.Addresses);
+        Assert.Equal(["production-counter"], group.SignalNames);
 
         var pollingGroups = provider.GetRequiredService<IPollingGroupRegistry>();
         Assert.True(pollingGroups.TryGet("LINE1-FAST", out var registeredGroup));

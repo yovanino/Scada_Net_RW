@@ -39,7 +39,8 @@ public sealed class ScadaNetOptions
         string name,
         string deviceName,
         IEnumerable<string> addresses,
-        TimeSpan? interval = null)
+        TimeSpan? interval = null,
+        IEnumerable<string>? signalNames = null)
     {
         var group = new SignalPollingGroupDefinition
         {
@@ -51,6 +52,11 @@ public sealed class ScadaNetOptions
         foreach (var address in addresses)
         {
             group.Addresses.Add(address);
+        }
+
+        foreach (var signalName in signalNames ?? [])
+        {
+            group.SignalNames.Add(signalName);
         }
 
         PollingGroups.Add(group);

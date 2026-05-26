@@ -29,6 +29,35 @@ public class SignalPollingServiceTests
     }
 
     [Fact]
+    public async Task PollAsync_resolves_named_signals_from_catalog()
+    {
+        var runtime = new FakeRuntime();
+        var statuses = new PollingStatusStore();
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        device.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "production-counter",
+            Address = "ProductionCounter"
+        });
+        var resolver = new DeviceSignalResolver(new DeviceRegistry([device]));
+        var polling = new SignalPollingService(runtime, statuses, resolver);
+        var group = new SignalPollingGroupDefinition
+        {
+            Name = "line1-fast",
+            DeviceName = "line1-plc"
+        };
+        group.SignalNames.Add("production-counter");
+
+        var values = await polling.PollAsync(group);
+
+        Assert.Equal(["ProductionCounter"], runtime.LastSignals.Select(signal => signal.Address));
+        Assert.Single(values);
+        Assert.True(statuses.TryGet("line1-fast", out var status));
+        Assert.True(status.Healthy);
+        Assert.Equal(1, status.SignalCount);
+    }
+
+    [Fact]
     public async Task PollAsync_skips_disabled_groups()
     {
         var runtime = new FakeRuntime();

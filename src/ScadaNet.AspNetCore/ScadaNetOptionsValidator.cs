@@ -18,6 +18,7 @@ public static class ScadaNetOptionsValidator
 
         var errors = new List<string>();
         var deviceNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var devicesByName = new Dictionary<string, Runtime.DeviceDefinition>(StringComparer.OrdinalIgnoreCase);
         var pollingGroupNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var device in options.Devices)
@@ -29,6 +30,10 @@ public static class ScadaNetOptionsValidator
             else if (!deviceNames.Add(device.Name))
             {
                 errors.Add($"Device '{device.Name}' is registered more than once.");
+            }
+            else
+            {
+                devicesByName[device.Name] = device;
             }
 
             if (string.IsNullOrWhiteSpace(device.Driver))
@@ -105,14 +110,31 @@ public static class ScadaNetOptionsValidator
                 errors.Add($"Polling group '{groupName}' interval must be greater than zero.");
             }
 
-            if (group.Enabled && group.Addresses.Count == 0)
+            if (group.Enabled && group.Addresses.Count == 0 && group.SignalNames.Count == 0)
             {
-                errors.Add($"Polling group '{groupName}' must contain at least one address.");
+                errors.Add($"Polling group '{groupName}' must contain at least one address or signal name.");
             }
 
             if (group.Addresses.Any(string.IsNullOrWhiteSpace))
             {
                 errors.Add($"Polling group '{groupName}' contains an empty address.");
+            }
+
+            if (group.SignalNames.Any(string.IsNullOrWhiteSpace))
+            {
+                errors.Add($"Polling group '{groupName}' contains an empty signal name.");
+            }
+
+            if (devicesByName.TryGetValue(group.DeviceName, out var device))
+            {
+                foreach (var signalName in group.SignalNames.Where(signalName => !string.IsNullOrWhiteSpace(signalName)))
+                {
+                    if (!device.TryGetSignal(signalName, out _))
+                    {
+                        errors.Add(
+                            $"Polling group '{groupName}' references unknown signal '{signalName}' on device '{group.DeviceName}'.");
+                    }
+                }
             }
         }
 

@@ -7,6 +7,7 @@ public sealed record PollingGroupSummary(
     TimeSpan Interval,
     int ConfiguredSignalCount,
     IReadOnlyList<string> Addresses,
+    IReadOnlyList<string> SignalNames,
     bool HasStatus,
     bool? Healthy,
     DateTimeOffset? LastRun,
