@@ -299,6 +299,13 @@ public class PlcRuntimeTests
             return ValueTask.FromResult<IDeviceConnectionLease>(_lastLease);
         }
 
+        public ValueTask<bool> CloseAsync(
+            string deviceName,
+            CancellationToken cancellationToken = default)
+        {
+            return ValueTask.FromResult(false);
+        }
+
         public IReadOnlyList<DeviceConnectionPoolStatus> GetStatus()
         {
             return [];

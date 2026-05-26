@@ -74,6 +74,37 @@ public sealed class DeviceConnectionPool : IDeviceConnectionPool, IAsyncDisposab
         _entries.Clear();
     }
 
+    public async ValueTask<bool> CloseAsync(
+        string deviceName,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(deviceName);
+
+        if (!_entries.TryGetValue(deviceName, out var entry))
+        {
+            return false;
+        }
+
+        await entry.Lock.WaitAsync(cancellationToken).ConfigureAwait(false);
+
+        try
+        {
+            if (entry.Connection is null)
+            {
+                return false;
+            }
+
+            await entry.Connection.DisposeAsync().ConfigureAwait(false);
+            entry.Connection = null;
+            entry.ConnectedAt = null;
+            return true;
+        }
+        finally
+        {
+            entry.Lock.Release();
+        }
+    }
+
     public IReadOnlyList<DeviceConnectionPoolStatus> GetStatus()
     {
         return _entries.Values

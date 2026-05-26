@@ -6,5 +6,9 @@ public interface IDeviceConnectionPool
         string deviceName,
         CancellationToken cancellationToken = default);
 
+    ValueTask<bool> CloseAsync(
+        string deviceName,
+        CancellationToken cancellationToken = default);
+
     IReadOnlyList<DeviceConnectionPoolStatus> GetStatus();
 }

@@ -46,6 +46,22 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             return Results.Ok(connections.GetStatus());
         });
 
+        group.MapDelete("/connections/pool/{name}", async (
+            string name,
+            IDeviceConnectionPool connections,
+            CancellationToken cancellationToken) =>
+        {
+            var closed = await connections.CloseAsync(name, cancellationToken)
+                .ConfigureAwait(false);
+
+            return closed
+                ? Results.NoContent()
+                : Results.NotFound(new
+                {
+                    Message = $"Device '{name}' has no active pooled connection."
+                });
+        });
+
         group.MapGet("/devices/{name}/signals/read", async (
             string name,
             string address,

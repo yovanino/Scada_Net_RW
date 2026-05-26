@@ -59,6 +59,59 @@ public class DeviceConnectionPoolTests
     }
 
     [Fact]
+    public async Task CloseAsync_disposes_cached_connection()
+    {
+        var factory = new FakeConnectionFactory();
+        await using var pool = new DeviceConnectionPool(factory);
+
+        await using (await pool.RentAsync("line1-plc"))
+        {
+        }
+
+        var closed = await pool.CloseAsync("line1-plc");
+
+        Assert.True(closed);
+        Assert.True(factory.Connections[0].WasDisposed);
+
+        var status = Assert.Single(pool.GetStatus());
+        Assert.False(status.HasConnection);
+        Assert.Null(status.ConnectedAt);
+        Assert.Equal(1, status.RentCount);
+    }
+
+    [Fact]
+    public async Task CloseAsync_allows_reconnect_on_next_rent()
+    {
+        var factory = new FakeConnectionFactory();
+        await using var pool = new DeviceConnectionPool(factory);
+
+        await using (await pool.RentAsync("line1-plc"))
+        {
+        }
+
+        await pool.CloseAsync("line1-plc");
+
+        await using (await pool.RentAsync("line1-plc"))
+        {
+        }
+
+        Assert.Equal(2, factory.ConnectCount);
+        Assert.True(factory.Connections[0].WasDisposed);
+        Assert.False(factory.Connections[1].WasDisposed);
+    }
+
+    [Fact]
+    public async Task CloseAsync_returns_false_for_missing_connection()
+    {
+        var factory = new FakeConnectionFactory();
+        await using var pool = new DeviceConnectionPool(factory);
+
+        var closed = await pool.CloseAsync("line1-plc");
+
+        Assert.False(closed);
+    }
+
+    [Fact]
     public async Task GetStatus_reports_cached_connections()
     {
         var factory = new FakeConnectionFactory();
