@@ -38,6 +38,7 @@ public static class ScadaNetServiceCollectionExtensions
         services.AddSingleton<IDeviceConnectionFactory, DeviceConnectionFactory>();
         services.AddSingleton<IDeviceConnectionPool, DeviceConnectionPool>();
         services.AddSingleton<ISignalSnapshotStore, SignalSnapshotStore>();
+        services.AddSingleton<IPollingStatusStore, PollingStatusStore>();
         services.AddSingleton<IDiscoveryService, DiscoveryService>();
         services.AddSingleton<IPlcRuntime, PlcRuntime>();
         services.AddSingleton<ISignalPollingService, SignalPollingService>();

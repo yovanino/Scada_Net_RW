@@ -151,6 +151,23 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                 });
         });
 
+        group.MapGet("/polling/status", (IPollingStatusStore statuses) =>
+        {
+            return Results.Ok(statuses.GetAll());
+        });
+
+        group.MapGet("/polling/status/{groupName}", (
+            string groupName,
+            IPollingStatusStore statuses) =>
+        {
+            return statuses.TryGet(groupName, out var status)
+                ? Results.Ok(status)
+                : Results.NotFound(new
+                {
+                    Message = $"Polling group '{groupName}' has no status yet."
+                });
+        });
+
         return group;
     }
 }

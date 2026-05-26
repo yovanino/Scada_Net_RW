@@ -9,7 +9,8 @@ public class SignalPollingServiceTests
     public async Task PollAsync_reads_configured_group_signals()
     {
         var runtime = new FakeRuntime();
-        var polling = new SignalPollingService(runtime);
+        var statuses = new PollingStatusStore();
+        var polling = new SignalPollingService(runtime, statuses);
         var group = new SignalPollingGroupDefinition
         {
             Name = "line1-fast",
@@ -22,13 +23,17 @@ public class SignalPollingServiceTests
 
         Assert.Equal(["ProductionCounter", "Motor.Speed"], runtime.LastSignals.Select(signal => signal.Address));
         Assert.Equal(2, values.Count);
+        Assert.True(statuses.TryGet("line1-fast", out var status));
+        Assert.True(status.Healthy);
+        Assert.Equal(2, status.SignalCount);
     }
 
     [Fact]
     public async Task PollAsync_skips_disabled_groups()
     {
         var runtime = new FakeRuntime();
-        var polling = new SignalPollingService(runtime);
+        var statuses = new PollingStatusStore();
+        var polling = new SignalPollingService(runtime, statuses);
         var group = new SignalPollingGroupDefinition
         {
             Name = "line1-fast",
@@ -41,11 +46,39 @@ public class SignalPollingServiceTests
 
         Assert.Empty(values);
         Assert.Empty(runtime.LastSignals);
+        Assert.True(statuses.TryGet("line1-fast", out var status));
+        Assert.True(status.Healthy);
+        Assert.Equal("Polling group is disabled.", status.Error);
+    }
+
+    [Fact]
+    public async Task PollAsync_records_failure_status()
+    {
+        var runtime = new FakeRuntime
+        {
+            ReadManyException = new InvalidOperationException("PLC unavailable")
+        };
+        var statuses = new PollingStatusStore();
+        var polling = new SignalPollingService(runtime, statuses);
+        var group = new SignalPollingGroupDefinition
+        {
+            Name = "line1-fast",
+            DeviceName = "line1-plc"
+        };
+        group.Addresses.Add("ProductionCounter");
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await polling.PollAsync(group));
+
+        Assert.True(statuses.TryGet("line1-fast", out var status));
+        Assert.False(status.Healthy);
+        Assert.Equal("PLC unavailable", status.Error);
     }
 
     private sealed class FakeRuntime : IPlcRuntime
     {
         public IReadOnlyList<SignalRef> LastSignals { get; private set; } = [];
+        public Exception? ReadManyException { get; init; }
 
         public ValueTask<SignalValue> ReadAsync(
             SignalRef signal,
@@ -58,6 +91,11 @@ public class SignalPollingServiceTests
             IReadOnlyList<SignalRef> signals,
             CancellationToken cancellationToken = default)
         {
+            if (ReadManyException is not null)
+            {
+                throw ReadManyException;
+            }
+
             LastSignals = signals;
 
             IReadOnlyList<SignalValue> values = signals

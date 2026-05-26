@@ -51,3 +51,13 @@ GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/snapsh
 Accept: application/json
 
 ###
+
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/polling/status
+Accept: application/json
+
+###
+
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/polling/status/line1-fast
+Accept: application/json
+
+###

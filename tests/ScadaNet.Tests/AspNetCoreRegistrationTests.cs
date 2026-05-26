@@ -27,6 +27,7 @@ public class AspNetCoreRegistrationTests
         var connectionFactory = provider.GetRequiredService<IDeviceConnectionFactory>();
         var connectionPool = provider.GetRequiredService<IDeviceConnectionPool>();
         var snapshots = provider.GetRequiredService<ISignalSnapshotStore>();
+        var pollingStatuses = provider.GetRequiredService<IPollingStatusStore>();
         var polling = provider.GetRequiredService<ISignalPollingService>();
         var runtime = provider.GetRequiredService<IPlcRuntime>();
         var hostedServices = provider.GetServices<IHostedService>().ToArray();
@@ -37,6 +38,7 @@ public class AspNetCoreRegistrationTests
         Assert.IsType<DeviceConnectionFactory>(connectionFactory);
         Assert.IsType<DeviceConnectionPool>(connectionPool);
         Assert.IsType<SignalSnapshotStore>(snapshots);
+        Assert.IsType<PollingStatusStore>(pollingStatuses);
         Assert.IsType<SignalPollingService>(polling);
         Assert.IsType<PlcRuntime>(runtime);
         Assert.Contains(hostedServices, service => service is ScadaNetPollingHostedService);
