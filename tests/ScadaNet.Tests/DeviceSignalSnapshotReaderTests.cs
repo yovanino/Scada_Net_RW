@@ -18,6 +18,8 @@ public class DeviceSignalSnapshotReaderTests
             Description = "Good parts counter",
             Category = "OEE",
             DisplayOrder = 10,
+            MinValue = 0,
+            MaxValue = 999999,
             IsArray = true,
             ElementCount = 10
         });
@@ -39,6 +41,8 @@ public class DeviceSignalSnapshotReaderTests
         Assert.Equal("Good parts counter", snapshot.Description);
         Assert.Equal("OEE", snapshot.Category);
         Assert.Equal(10, snapshot.DisplayOrder);
+        Assert.Equal(0, snapshot.MinValue);
+        Assert.Equal(999999, snapshot.MaxValue);
         Assert.True(snapshot.IsArray);
         Assert.Equal((ushort)10, snapshot.ElementCount);
         Assert.True(snapshot.HasValue);

@@ -338,9 +338,15 @@ public static class ScadaNetEndpointRouteBuilderExtensions
 
             try
             {
+                var value = request.GetValue();
+                ScadaNetSignalValueRangeValidation.Validate(
+                    resolution.Definition,
+                    value,
+                    signalName);
+
                 await runtime.WriteAsync(
                         resolution.Signal,
-                        request.GetValue(),
+                        value,
                         request.DataType ?? resolution.Definition.DataType,
                         cancellationToken)
                     .ConfigureAwait(false);
@@ -379,9 +385,15 @@ public static class ScadaNetEndpointRouteBuilderExtensions
 
             try
             {
+                var values = request.GetValues();
+                ScadaNetSignalValueRangeValidation.ValidateMany(
+                    resolution.Definition,
+                    values,
+                    signalName);
+
                 await runtime.WriteArrayAsync(
                         resolution.Signal,
-                        request.GetValues(),
+                        values,
                         request.DataType ?? resolution.Definition.DataType,
                         cancellationToken)
                     .ConfigureAwait(false);

@@ -84,6 +84,13 @@ public static class ScadaNetOptionsValidator
                     errors.Add($"Device '{device.Name}' signal '{signal.Name}' element count must be greater than zero.");
                 }
 
+                if (signal.MinValue.HasValue &&
+                    signal.MaxValue.HasValue &&
+                    signal.MinValue.Value > signal.MaxValue.Value)
+                {
+                    errors.Add($"Device '{device.Name}' signal '{signal.Name}' minimum value cannot be greater than maximum value.");
+                }
+
                 if (signal.Writable)
                 {
                     if (!device.WritesEnabled)

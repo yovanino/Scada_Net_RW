@@ -164,4 +164,23 @@ public class ScadaNetOptionsValidatorTests
 
         Assert.Contains(error.Errors, item => item.Contains("not allowed by the device write policy"));
     }
+
+    [Fact]
+    public void Validate_rejects_signal_min_value_greater_than_max_value()
+    {
+        var options = new ScadaNetOptions();
+
+        options.AddDevice("line1-plc", "logix", "192.168.0.10");
+        options.AddSignal(
+            "line1-plc",
+            "speed-setpoint",
+            "SpeedSetpoint",
+            minValue: 100,
+            maxValue: 10);
+
+        var error = Assert.Throws<ScadaNetOptionsValidationException>(() =>
+            ScadaNetOptionsValidator.Validate(options));
+
+        Assert.Contains(error.Errors, item => item.Contains("minimum value cannot be greater than maximum value"));
+    }
 }

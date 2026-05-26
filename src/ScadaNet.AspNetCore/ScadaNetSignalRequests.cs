@@ -1,5 +1,6 @@
 using System.Text.Json;
 using ScadaNet.Model;
+using ScadaNet.Runtime;
 
 namespace ScadaNet.AspNetCore;
 
@@ -153,5 +154,106 @@ internal static class ScadaNetJsonSignalValue
             _ => throw new NotSupportedException(
                 $"JSON value kind '{value.ValueKind}' is not supported for signal values.")
         };
+    }
+}
+
+public static class ScadaNetSignalValueRangeValidation
+{
+    public static void Validate(
+        DeviceSignalDefinition definition,
+        object? value,
+        string signalName)
+    {
+        if (!definition.MinValue.HasValue && !definition.MaxValue.HasValue)
+        {
+            return;
+        }
+
+        if (!TryGetNumber(value, out var numericValue))
+        {
+            throw new ArgumentException(
+                $"Signal '{signalName}' requires a numeric value because it has configured engineering limits.",
+                nameof(value));
+        }
+
+        if (definition.MinValue.HasValue && numericValue < definition.MinValue.Value)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(value),
+                numericValue,
+                $"Signal '{signalName}' value must be greater than or equal to {definition.MinValue.Value}.");
+        }
+
+        if (definition.MaxValue.HasValue && numericValue > definition.MaxValue.Value)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(value),
+                numericValue,
+                $"Signal '{signalName}' value must be less than or equal to {definition.MaxValue.Value}.");
+        }
+    }
+
+    public static void ValidateMany(
+        DeviceSignalDefinition definition,
+        IReadOnlyList<object?> values,
+        string signalName)
+    {
+        for (var index = 0; index < values.Count; index++)
+        {
+            try
+            {
+                Validate(definition, values[index], signalName);
+            }
+            catch (ArgumentException ex)
+            {
+                throw new ArgumentException(
+                    $"{ex.Message} Array index: {index}.",
+                    $"values[{index}]",
+                    ex);
+            }
+        }
+    }
+
+    private static bool TryGetNumber(object? value, out double numericValue)
+    {
+        switch (value)
+        {
+            case byte byteValue:
+                numericValue = byteValue;
+                return true;
+            case sbyte sbyteValue:
+                numericValue = sbyteValue;
+                return true;
+            case short shortValue:
+                numericValue = shortValue;
+                return true;
+            case ushort ushortValue:
+                numericValue = ushortValue;
+                return true;
+            case int intValue:
+                numericValue = intValue;
+                return true;
+            case uint uintValue:
+                numericValue = uintValue;
+                return true;
+            case long longValue:
+                numericValue = longValue;
+                return true;
+            case ulong ulongValue:
+                numericValue = ulongValue;
+                return true;
+            case float floatValue:
+                numericValue = floatValue;
+                return true;
+            case double doubleValue:
+                numericValue = doubleValue;
+                return true;
+            case decimal decimalValue:
+                numericValue = (double)decimalValue;
+                return true;
+            default:
+                numericValue = default;
+                return false;
+        }
     }
 }

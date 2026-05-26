@@ -71,6 +71,8 @@ public sealed class ScadaNetOptions
         string? description = null,
         string? category = null,
         int? displayOrder = null,
+        double? minValue = null,
+        double? maxValue = null,
         bool isArray = false,
         ushort? elementCount = null,
         bool writable = false)
@@ -94,6 +96,8 @@ public sealed class ScadaNetOptions
             Description = description,
             Category = category,
             DisplayOrder = displayOrder,
+            MinValue = minValue,
+            MaxValue = maxValue,
             IsArray = isArray,
             ElementCount = elementCount,
             Writable = writable

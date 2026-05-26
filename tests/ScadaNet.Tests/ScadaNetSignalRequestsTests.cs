@@ -160,6 +160,73 @@ public class ScadaNetSignalRequestsTests
     }
 
     [Fact]
+    public void Signal_value_range_validation_accepts_values_within_limits()
+    {
+        var definition = new ScadaNet.Runtime.DeviceSignalDefinition
+        {
+            Name = "speed-setpoint",
+            Address = "SpeedSetpoint",
+            MinValue = 0,
+            MaxValue = 100
+        };
+
+        ScadaNetSignalValueRangeValidation.Validate(definition, 50, "speed-setpoint");
+    }
+
+    [Fact]
+    public void Signal_value_range_validation_rejects_values_below_minimum()
+    {
+        var definition = new ScadaNet.Runtime.DeviceSignalDefinition
+        {
+            Name = "speed-setpoint",
+            Address = "SpeedSetpoint",
+            MinValue = 10
+        };
+
+        var error = Assert.Throws<ArgumentOutOfRangeException>(() =>
+            ScadaNetSignalValueRangeValidation.Validate(definition, 5, "speed-setpoint"));
+
+        Assert.Contains("greater than or equal to 10", error.Message);
+    }
+
+    [Fact]
+    public void Signal_value_range_validation_rejects_non_numeric_limited_values()
+    {
+        var definition = new ScadaNet.Runtime.DeviceSignalDefinition
+        {
+            Name = "speed-setpoint",
+            Address = "SpeedSetpoint",
+            MinValue = 0,
+            MaxValue = 100
+        };
+
+        var error = Assert.Throws<ArgumentException>(() =>
+            ScadaNetSignalValueRangeValidation.Validate(definition, "fast", "speed-setpoint"));
+
+        Assert.Contains("requires a numeric value", error.Message);
+    }
+
+    [Fact]
+    public void Signal_value_range_validation_reports_array_index()
+    {
+        var definition = new ScadaNet.Runtime.DeviceSignalDefinition
+        {
+            Name = "recipe-values",
+            Address = "Recipe.Values",
+            MinValue = 0,
+            MaxValue = 10
+        };
+
+        var error = Assert.Throws<ArgumentException>(() =>
+            ScadaNetSignalValueRangeValidation.ValidateMany(
+                definition,
+                [1, 11],
+                "recipe-values"));
+
+        Assert.Contains("Array index: 1", error.Message);
+    }
+
+    [Fact]
     public void Write_array_request_rejects_empty_address()
     {
         using var document = JsonDocument.Parse("[1,2,3]");

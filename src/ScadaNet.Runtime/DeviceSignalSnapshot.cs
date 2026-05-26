@@ -10,6 +10,8 @@ public sealed record DeviceSignalSnapshot(
     string? Description,
     string? Category,
     int? DisplayOrder,
+    double? MinValue,
+    double? MaxValue,
     bool IsArray,
     ushort? ElementCount,
     bool Writable,

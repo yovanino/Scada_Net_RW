@@ -65,6 +65,8 @@ public sealed class DeviceSignalSnapshotReader : IDeviceSignalSnapshotReader
             signal.Description,
             signal.Category,
             signal.DisplayOrder,
+            signal.MinValue,
+            signal.MaxValue,
             signal.IsArray,
             signal.ElementCount,
             signal.Writable,

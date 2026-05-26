@@ -130,6 +130,8 @@ public class AspNetCoreRegistrationTests
             ["ScadaNet:Devices:0:Signals:0:Description"] = "Good parts counter",
             ["ScadaNet:Devices:0:Signals:0:Category"] = "OEE",
             ["ScadaNet:Devices:0:Signals:0:DisplayOrder"] = "10",
+            ["ScadaNet:Devices:0:Signals:0:MinValue"] = "0",
+            ["ScadaNet:Devices:0:Signals:0:MaxValue"] = "999999",
             ["ScadaNet:Devices:0:Signals:0:IsArray"] = "true",
             ["ScadaNet:Devices:0:Signals:0:ElementCount"] = "10",
             ["ScadaNet:Devices:0:Signals:0:Writable"] = "false",
@@ -163,6 +165,8 @@ public class AspNetCoreRegistrationTests
         Assert.Equal("Good parts counter", signal.Description);
         Assert.Equal("OEE", signal.Category);
         Assert.Equal(10, signal.DisplayOrder);
+        Assert.Equal(0, signal.MinValue);
+        Assert.Equal(999999, signal.MaxValue);
         Assert.True(signal.IsArray);
         Assert.Equal((ushort)10, signal.ElementCount);
         Assert.False(signal.Writable);
