@@ -46,6 +46,19 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             return Results.Ok(connections.GetStatus());
         });
 
+        group.MapDelete("/connections/pool", async (
+            IDeviceConnectionPool connections,
+            CancellationToken cancellationToken) =>
+        {
+            var closed = await connections.CloseAllAsync(cancellationToken)
+                .ConfigureAwait(false);
+
+            return Results.Ok(new
+            {
+                Closed = closed
+            });
+        });
+
         group.MapDelete("/connections/pool/{name}", async (
             string name,
             IDeviceConnectionPool connections,

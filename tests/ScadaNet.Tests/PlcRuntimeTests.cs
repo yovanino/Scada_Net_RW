@@ -306,6 +306,11 @@ public class PlcRuntimeTests
             return ValueTask.FromResult(false);
         }
 
+        public ValueTask<int> CloseAllAsync(CancellationToken cancellationToken = default)
+        {
+            return ValueTask.FromResult(0);
+        }
+
         public IReadOnlyList<DeviceConnectionPoolStatus> GetStatus()
         {
             return [];
