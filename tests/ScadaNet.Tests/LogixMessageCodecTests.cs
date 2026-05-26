@@ -28,6 +28,16 @@ public class LogixMessageCodecTests
     }
 
     [Fact]
+    public void EncodeReadTag_supports_indexed_udt_member_path()
+    {
+        var encoded = LogixMessageCodec.EncodeReadTag(new LogixReadTagRequest("Recipe.Steps[260].Target"));
+
+        Assert.Equal(0x4C, encoded[0]);
+        Assert.Equal(0x0E, encoded[1]);
+        Assert.Equal([0x01, 0x00], encoded[^2..]);
+    }
+
+    [Fact]
     public void EncodeWriteTag_creates_dint_write_tag_request()
     {
         var encoded = LogixMessageCodec.EncodeWriteTag(
