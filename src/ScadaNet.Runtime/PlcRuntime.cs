@@ -65,6 +65,14 @@ public sealed class PlcRuntime : IPlcRuntime
         ushort elementCount,
         CancellationToken cancellationToken = default)
     {
+        if (elementCount == 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(elementCount),
+                elementCount,
+                "Array read element count must be greater than zero.");
+        }
+
         await using var lease = await _connections
             .RentAsync(signal.DeviceName, cancellationToken)
             .ConfigureAwait(false);

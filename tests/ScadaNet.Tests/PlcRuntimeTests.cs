@@ -171,6 +171,22 @@ public class PlcRuntimeTests
     }
 
     [Fact]
+    public async Task ReadArrayAsync_rejects_zero_element_count_before_renting_connection()
+    {
+        var connection = new FakeArrayConnection();
+        var registry = new DeviceRegistry([
+            new DeviceDefinition("line1-plc", "fake", "127.0.0.1")
+        ]);
+        var pool = new FakeConnectionPool(connection);
+        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore(), new WriteAuditStore());
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(async () =>
+            await runtime.ReadArrayAsync(new SignalRef("line1-plc", "Counters"), 0));
+
+        Assert.Null(pool.LastDeviceName);
+    }
+
+    [Fact]
     public async Task WriteAsync_rejects_when_device_writes_are_disabled()
     {
         var connection = new FakeConnection();
