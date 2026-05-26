@@ -16,6 +16,8 @@ public class DeviceSignalSnapshotReaderTests
             DataType = "DINT",
             Unit = "parts",
             Description = "Good parts counter",
+            Category = "OEE",
+            DisplayOrder = 10,
             IsArray = true,
             ElementCount = 10
         });
@@ -35,6 +37,8 @@ public class DeviceSignalSnapshotReaderTests
         Assert.Equal("DINT", snapshot.DataType);
         Assert.Equal("parts", snapshot.Unit);
         Assert.Equal("Good parts counter", snapshot.Description);
+        Assert.Equal("OEE", snapshot.Category);
+        Assert.Equal(10, snapshot.DisplayOrder);
         Assert.True(snapshot.IsArray);
         Assert.Equal((ushort)10, snapshot.ElementCount);
         Assert.True(snapshot.HasValue);
@@ -61,6 +65,41 @@ public class DeviceSignalSnapshotReaderTests
         Assert.Equal("speed", snapshot.Name);
         Assert.False(snapshot.HasValue);
         Assert.Null(snapshot.Value);
+    }
+
+    [Fact]
+    public void TryGetDeviceSnapshots_orders_by_display_order_category_and_name()
+    {
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        device.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "z-signal",
+            Address = "Z",
+            Category = "Motor",
+            DisplayOrder = 20
+        });
+        device.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "a-signal",
+            Address = "A",
+            Category = "OEE",
+            DisplayOrder = 10
+        });
+        device.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "b-signal",
+            Address = "B",
+            Category = "Motor",
+            DisplayOrder = 10
+        });
+        var reader = new DeviceSignalSnapshotReader(
+            new DeviceRegistry([device]),
+            new SignalSnapshotStore());
+
+        var found = reader.TryGetDeviceSnapshots("line1-plc", out var snapshots);
+
+        Assert.True(found);
+        Assert.Equal(["b-signal", "a-signal", "z-signal"], snapshots.Select(snapshot => snapshot.Name));
     }
 
     [Fact]

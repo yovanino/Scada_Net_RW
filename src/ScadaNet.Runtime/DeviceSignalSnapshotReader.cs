@@ -26,7 +26,9 @@ public sealed class DeviceSignalSnapshotReader : IDeviceSignalSnapshotReader
         }
 
         snapshots = device.Signals
-            .OrderBy(signal => signal.Name, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(signal => signal.DisplayOrder ?? int.MaxValue)
+            .ThenBy(signal => signal.Category, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(signal => signal.Name, StringComparer.OrdinalIgnoreCase)
             .Select(signal => BuildSnapshot(device, signal))
             .ToArray();
         return true;
@@ -61,6 +63,8 @@ public sealed class DeviceSignalSnapshotReader : IDeviceSignalSnapshotReader
             signal.DataType,
             signal.Unit,
             signal.Description,
+            signal.Category,
+            signal.DisplayOrder,
             signal.IsArray,
             signal.ElementCount,
             signal.Writable,

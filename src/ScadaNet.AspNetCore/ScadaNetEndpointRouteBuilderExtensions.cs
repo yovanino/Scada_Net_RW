@@ -46,7 +46,11 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             IDeviceRegistry registry) =>
         {
             return registry.TryGet(name, out var device)
-                ? Results.Ok(device.Signals)
+                ? Results.Ok(device.Signals
+                    .OrderBy(signal => signal.DisplayOrder ?? int.MaxValue)
+                    .ThenBy(signal => signal.Category, StringComparer.OrdinalIgnoreCase)
+                    .ThenBy(signal => signal.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToArray())
                 : Results.NotFound(new
                 {
                     Message = $"Device '{name}' is not registered."

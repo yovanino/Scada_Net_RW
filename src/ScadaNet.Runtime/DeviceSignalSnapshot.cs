@@ -8,6 +8,8 @@ public sealed record DeviceSignalSnapshot(
     string? DataType,
     string? Unit,
     string? Description,
+    string? Category,
+    int? DisplayOrder,
     bool IsArray,
     ushort? ElementCount,
     bool Writable,

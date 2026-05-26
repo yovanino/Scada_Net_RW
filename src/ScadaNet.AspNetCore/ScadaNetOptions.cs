@@ -69,6 +69,8 @@ public sealed class ScadaNetOptions
         string? dataType = null,
         string? unit = null,
         string? description = null,
+        string? category = null,
+        int? displayOrder = null,
         bool isArray = false,
         ushort? elementCount = null,
         bool writable = false)
@@ -90,6 +92,8 @@ public sealed class ScadaNetOptions
             DataType = dataType,
             Unit = unit,
             Description = description,
+            Category = category,
+            DisplayOrder = displayOrder,
             IsArray = isArray,
             ElementCount = elementCount,
             Writable = writable
