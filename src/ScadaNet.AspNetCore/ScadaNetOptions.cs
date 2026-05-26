@@ -15,14 +15,24 @@ public sealed class ScadaNetOptions
         string address,
         int? port = null,
         string? path = null,
-        TimeSpan? timeout = null)
+        TimeSpan? timeout = null,
+        bool writesEnabled = false,
+        IEnumerable<string>? writableAddresses = null)
     {
-        Devices.Add(new DeviceDefinition(name, driver, address)
+        var device = new DeviceDefinition(name, driver, address)
         {
             Port = port,
             Path = path,
-            Timeout = timeout ?? TimeSpan.FromSeconds(3)
-        });
+            Timeout = timeout ?? TimeSpan.FromSeconds(3),
+            WritesEnabled = writesEnabled
+        };
+
+        foreach (var writableAddress in writableAddresses ?? [])
+        {
+            device.WritableAddresses.Add(writableAddress);
+        }
+
+        Devices.Add(device);
     }
 
     public void AddPollingGroup(

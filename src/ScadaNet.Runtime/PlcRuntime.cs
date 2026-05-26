@@ -4,13 +4,16 @@ namespace ScadaNet.Runtime;
 
 public sealed class PlcRuntime : IPlcRuntime
 {
+    private readonly IDeviceRegistry _registry;
     private readonly IDeviceConnectionPool _connections;
     private readonly ISignalSnapshotStore _snapshots;
 
     public PlcRuntime(
+        IDeviceRegistry registry,
         IDeviceConnectionPool connections,
         ISignalSnapshotStore snapshots)
     {
+        _registry = registry;
         _connections = connections;
         _snapshots = snapshots;
     }
@@ -58,11 +61,30 @@ public sealed class PlcRuntime : IPlcRuntime
         object? value,
         CancellationToken cancellationToken = default)
     {
+        EnsureWriteAllowed(signal);
+
         await using var lease = await _connections
             .RentAsync(signal.DeviceName, cancellationToken)
             .ConfigureAwait(false);
 
         await lease.Connection.WriteAsync(signal, value, cancellationToken)
             .ConfigureAwait(false);
+    }
+
+    private void EnsureWriteAllowed(SignalRef signal)
+    {
+        var device = _registry.GetRequired(signal.DeviceName);
+
+        if (!device.WritesEnabled)
+        {
+            throw new InvalidOperationException(
+                $"Writes are disabled for device '{device.Name}'.");
+        }
+
+        if (!device.CanWrite(signal.Address))
+        {
+            throw new InvalidOperationException(
+                $"Signal '{signal.Address}' is not configured as writable for device '{device.Name}'.");
+        }
     }
 }

@@ -10,9 +10,12 @@ public class PlcRuntimeTests
     public async Task ReadAsync_connects_by_signal_device_name()
     {
         var connection = new FakeConnection();
+        var registry = new DeviceRegistry([
+            new DeviceDefinition("line1-plc", "fake", "127.0.0.1")
+        ]);
         var pool = new FakeConnectionPool(connection);
         var snapshots = new SignalSnapshotStore();
-        var runtime = new PlcRuntime(pool, snapshots);
+        var runtime = new PlcRuntime(registry, pool, snapshots);
         var signal = new SignalRef("line1-plc", "ProductionCounter");
 
         var value = await runtime.ReadAsync(signal);
@@ -29,8 +32,15 @@ public class PlcRuntimeTests
     public async Task WriteAsync_uses_connection_for_signal_device()
     {
         var connection = new FakeConnection();
+        var registry = new DeviceRegistry([
+            new DeviceDefinition("line1-plc", "fake", "127.0.0.1")
+            {
+                WritesEnabled = true,
+                WritableAddresses = { "ResetCommand" }
+            }
+        ]);
         var pool = new FakeConnectionPool(connection);
-        var runtime = new PlcRuntime(pool, new SignalSnapshotStore());
+        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore());
         var signal = new SignalRef("line1-plc", "ResetCommand");
 
         await runtime.WriteAsync(signal, true);
@@ -40,6 +50,44 @@ public class PlcRuntimeTests
         Assert.Equal(true, connection.LastWrittenValue);
         Assert.True(pool.LastLeaseWasDisposed);
         Assert.False(connection.WasDisposed);
+    }
+
+    [Fact]
+    public async Task WriteAsync_rejects_when_device_writes_are_disabled()
+    {
+        var connection = new FakeConnection();
+        var registry = new DeviceRegistry([
+            new DeviceDefinition("line1-plc", "fake", "127.0.0.1")
+        ]);
+        var pool = new FakeConnectionPool(connection);
+        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore());
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await runtime.WriteAsync(new SignalRef("line1-plc", "ResetCommand"), true));
+
+        Assert.Contains("Writes are disabled", error.Message);
+        Assert.Null(connection.LastWrittenSignal);
+    }
+
+    [Fact]
+    public async Task WriteAsync_rejects_unlisted_writable_signal()
+    {
+        var connection = new FakeConnection();
+        var registry = new DeviceRegistry([
+            new DeviceDefinition("line1-plc", "fake", "127.0.0.1")
+            {
+                WritesEnabled = true,
+                WritableAddresses = { "ResetCommand" }
+            }
+        ]);
+        var pool = new FakeConnectionPool(connection);
+        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore());
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await runtime.WriteAsync(new SignalRef("line1-plc", "SpeedSetpoint"), 12.5));
+
+        Assert.Contains("not configured as writable", error.Message);
+        Assert.Null(connection.LastWrittenSignal);
     }
 
     private sealed class FakeConnectionPool : IDeviceConnectionPool

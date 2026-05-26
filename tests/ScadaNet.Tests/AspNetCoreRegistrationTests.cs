@@ -95,6 +95,8 @@ public class AspNetCoreRegistrationTests
             ["ScadaNet:Devices:0:Port"] = "44818",
             ["ScadaNet:Devices:0:Path"] = "1,0",
             ["ScadaNet:Devices:0:Timeout"] = "00:00:02",
+            ["ScadaNet:Devices:0:WritesEnabled"] = "true",
+            ["ScadaNet:Devices:0:WritableAddresses:0"] = "ResetCommand",
             ["ScadaNet:PollingGroups:0:Name"] = "line1-fast",
             ["ScadaNet:PollingGroups:0:DeviceName"] = "line1-plc",
             ["ScadaNet:PollingGroups:0:Interval"] = "00:00:01",
@@ -114,6 +116,8 @@ public class AspNetCoreRegistrationTests
         Assert.Equal(44818, device.Port);
         Assert.Equal("1,0", device.Path);
         Assert.Equal(TimeSpan.FromSeconds(2), device.Timeout);
+        Assert.True(device.WritesEnabled);
+        Assert.Equal(["ResetCommand"], device.WritableAddresses);
 
         var options = provider.GetRequiredService<ScadaNetOptions>();
         var group = Assert.Single(options.PollingGroups);

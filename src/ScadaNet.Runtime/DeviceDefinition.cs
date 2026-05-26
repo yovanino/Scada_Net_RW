@@ -24,6 +24,8 @@ public sealed record DeviceDefinition
     public int? Port { get; init; }
     public string? Path { get; init; }
     public TimeSpan Timeout { get; init; } = TimeSpan.FromSeconds(3);
+    public bool WritesEnabled { get; init; }
+    public IList<string> WritableAddresses { get; } = [];
 
     public DeviceConnectionOptions ToConnectionOptions()
     {
@@ -44,5 +46,15 @@ public sealed record DeviceDefinition
             : Array.Empty<int>();
 
         return new ProbeRequest(Address, ports, Timeout);
+    }
+
+    public bool CanWrite(string address)
+    {
+        return WritesEnabled &&
+            (WritableAddresses.Count == 0 ||
+                WritableAddresses.Any(writable => string.Equals(
+                    writable,
+                    address,
+                    StringComparison.OrdinalIgnoreCase)));
     }
 }
