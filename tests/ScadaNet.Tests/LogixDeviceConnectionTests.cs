@@ -40,7 +40,20 @@ public class LogixDeviceConnectionTests
         await using var connection = new LogixDeviceConnection("line1-plc", client);
 
         await Assert.ThrowsAsync<NotSupportedException>(async () =>
-            await connection.WriteAsync(new SignalRef("line1-plc", "Message"), "hello"));
+            await connection.WriteAsync(new SignalRef("line1-plc", "Timestamp"), DateTimeOffset.UtcNow));
+    }
+
+    [Fact]
+    public async Task WriteAsync_infers_string_for_string_values()
+    {
+        var client = new FakeLogixClient(readValue: null);
+        await using var connection = new LogixDeviceConnection("line1-plc", client);
+
+        await connection.WriteAsync(new SignalRef("line1-plc", "Message"), "hello");
+
+        Assert.Equal("Message", client.LastWriteTag);
+        Assert.Equal(LogixDataTypeCode.String, client.LastWriteType);
+        Assert.Equal("hello", client.LastWriteValue);
     }
 
     private sealed class FakeLogixClient : ILogixClient

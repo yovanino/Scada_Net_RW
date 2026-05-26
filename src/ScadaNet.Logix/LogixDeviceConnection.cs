@@ -75,6 +75,7 @@ public sealed class LogixDeviceConnection : IDeviceConnection
             bool => LogixDataTypeCode.Bool,
             int => LogixDataTypeCode.Dint,
             float or double => LogixDataTypeCode.Real,
+            string => LogixDataTypeCode.String,
             _ => throw new NotSupportedException(
                 $"Cannot infer a Logix primitive data type for value '{value}'.")
         };

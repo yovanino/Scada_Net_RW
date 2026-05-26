@@ -33,4 +33,31 @@ public class LogixPrimitiveCodecTests
         Assert.Equal([0x00, 0x00, 0x48, 0x41], encoded);
         Assert.Equal(12.5f, decoded);
     }
+
+    [Fact]
+    public void Encode_and_decode_logix_string()
+    {
+        var encoded = LogixPrimitiveCodec.Encode(LogixDataTypeCode.String, "RUN");
+        var decoded = LogixPrimitiveCodec.Decode(LogixDataTypeCode.String, encoded);
+
+        Assert.Equal(sizeof(int) + LogixPrimitiveCodec.LogixStringMaxLength, encoded.Length);
+        Assert.Equal([0x03, 0x00, 0x00, 0x00, 0x52, 0x55, 0x4E], encoded[..7]);
+        Assert.Equal("RUN", decoded);
+    }
+
+    [Fact]
+    public void Encode_string_rejects_values_longer_than_logix_string_buffer()
+    {
+        var value = new string('A', LogixPrimitiveCodec.LogixStringMaxLength + 1);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            LogixPrimitiveCodec.Encode(LogixDataTypeCode.String, value));
+    }
+
+    [Fact]
+    public void Encode_string_rejects_non_ascii_values()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            LogixPrimitiveCodec.Encode(LogixDataTypeCode.String, "linea-ñ"));
+    }
 }
