@@ -189,6 +189,30 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                 });
         });
 
+        group.MapGet("/writes/audit", (
+            int? count,
+            IWriteAuditStore audit) =>
+        {
+            return Results.Ok(audit.GetRecent(count ?? 100));
+        });
+
+        group.MapGet("/devices/{name}/writes/audit", (
+            string name,
+            int? count,
+            IDeviceRegistry registry,
+            IWriteAuditStore audit) =>
+        {
+            if (!registry.TryGet(name, out _))
+            {
+                return Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
+            }
+
+            return Results.Ok(audit.GetDeviceRecords(name, count ?? 100));
+        });
+
         return group;
     }
 }

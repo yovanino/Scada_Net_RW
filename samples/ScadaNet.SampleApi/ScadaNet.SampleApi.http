@@ -61,3 +61,13 @@ GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/polling/status/line1-fast
 Accept: application/json
 
 ###
+
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/writes/audit
+Accept: application/json
+
+###
+
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/writes/audit
+Accept: application/json
+
+###

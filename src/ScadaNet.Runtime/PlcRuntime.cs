@@ -7,15 +7,18 @@ public sealed class PlcRuntime : IPlcRuntime
     private readonly IDeviceRegistry _registry;
     private readonly IDeviceConnectionPool _connections;
     private readonly ISignalSnapshotStore _snapshots;
+    private readonly IWriteAuditStore _writeAudit;
 
     public PlcRuntime(
         IDeviceRegistry registry,
         IDeviceConnectionPool connections,
-        ISignalSnapshotStore snapshots)
+        ISignalSnapshotStore snapshots,
+        IWriteAuditStore writeAudit)
     {
         _registry = registry;
         _connections = connections;
         _snapshots = snapshots;
+        _writeAudit = writeAudit;
     }
 
     public async ValueTask<SignalValue> ReadAsync(
@@ -61,14 +64,24 @@ public sealed class PlcRuntime : IPlcRuntime
         object? value,
         CancellationToken cancellationToken = default)
     {
-        EnsureWriteAllowed(signal);
+        try
+        {
+            EnsureWriteAllowed(signal);
 
-        await using var lease = await _connections
-            .RentAsync(signal.DeviceName, cancellationToken)
-            .ConfigureAwait(false);
+            await using var lease = await _connections
+                .RentAsync(signal.DeviceName, cancellationToken)
+                .ConfigureAwait(false);
 
-        await lease.Connection.WriteAsync(signal, value, cancellationToken)
-            .ConfigureAwait(false);
+            await lease.Connection.WriteAsync(signal, value, cancellationToken)
+                .ConfigureAwait(false);
+
+            AuditWrite(signal, value, succeeded: true, error: null);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            AuditWrite(signal, value, succeeded: false, ex.Message);
+            throw;
+        }
     }
 
     private void EnsureWriteAllowed(SignalRef signal)
@@ -86,5 +99,20 @@ public sealed class PlcRuntime : IPlcRuntime
             throw new InvalidOperationException(
                 $"Signal '{signal.Address}' is not configured as writable for device '{device.Name}'.");
         }
+    }
+
+    private void AuditWrite(
+        SignalRef signal,
+        object? value,
+        bool succeeded,
+        string? error)
+    {
+        _writeAudit.Add(new WriteAuditRecord(
+            Sequence: 0,
+            DateTimeOffset.UtcNow,
+            signal,
+            value,
+            succeeded,
+            error));
     }
 }

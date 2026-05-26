@@ -15,7 +15,7 @@ public class PlcRuntimeTests
         ]);
         var pool = new FakeConnectionPool(connection);
         var snapshots = new SignalSnapshotStore();
-        var runtime = new PlcRuntime(registry, pool, snapshots);
+        var runtime = new PlcRuntime(registry, pool, snapshots, new WriteAuditStore());
         var signal = new SignalRef("line1-plc", "ProductionCounter");
 
         var value = await runtime.ReadAsync(signal);
@@ -40,7 +40,8 @@ public class PlcRuntimeTests
             }
         ]);
         var pool = new FakeConnectionPool(connection);
-        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore());
+        var audit = new WriteAuditStore();
+        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore(), audit);
         var signal = new SignalRef("line1-plc", "ResetCommand");
 
         await runtime.WriteAsync(signal, true);
@@ -50,6 +51,11 @@ public class PlcRuntimeTests
         Assert.Equal(true, connection.LastWrittenValue);
         Assert.True(pool.LastLeaseWasDisposed);
         Assert.False(connection.WasDisposed);
+
+        var record = Assert.Single(audit.GetRecent());
+        Assert.True(record.Succeeded);
+        Assert.Equal(signal, record.Signal);
+        Assert.Equal(true, record.Value);
     }
 
     [Fact]
@@ -60,13 +66,18 @@ public class PlcRuntimeTests
             new DeviceDefinition("line1-plc", "fake", "127.0.0.1")
         ]);
         var pool = new FakeConnectionPool(connection);
-        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore());
+        var audit = new WriteAuditStore();
+        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore(), audit);
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await runtime.WriteAsync(new SignalRef("line1-plc", "ResetCommand"), true));
 
         Assert.Contains("Writes are disabled", error.Message);
         Assert.Null(connection.LastWrittenSignal);
+
+        var record = Assert.Single(audit.GetRecent());
+        Assert.False(record.Succeeded);
+        Assert.Contains("Writes are disabled", record.Error);
     }
 
     [Fact]
@@ -81,13 +92,18 @@ public class PlcRuntimeTests
             }
         ]);
         var pool = new FakeConnectionPool(connection);
-        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore());
+        var audit = new WriteAuditStore();
+        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore(), audit);
 
         var error = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
             await runtime.WriteAsync(new SignalRef("line1-plc", "SpeedSetpoint"), 12.5));
 
         Assert.Contains("not configured as writable", error.Message);
         Assert.Null(connection.LastWrittenSignal);
+
+        var record = Assert.Single(audit.GetRecent());
+        Assert.False(record.Succeeded);
+        Assert.Contains("not configured as writable", record.Error);
     }
 
     private sealed class FakeConnectionPool : IDeviceConnectionPool
