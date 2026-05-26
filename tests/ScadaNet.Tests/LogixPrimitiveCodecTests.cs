@@ -15,6 +15,26 @@ public class LogixPrimitiveCodecTests
     }
 
     [Fact]
+    public void Encode_and_decode_sint()
+    {
+        var encoded = LogixPrimitiveCodec.Encode(LogixDataTypeCode.Sint, (sbyte)-5);
+        var decoded = LogixPrimitiveCodec.Decode(LogixDataTypeCode.Sint, encoded);
+
+        Assert.Equal([0xFB], encoded);
+        Assert.Equal((sbyte)-5, decoded);
+    }
+
+    [Fact]
+    public void Encode_and_decode_int_little_endian()
+    {
+        var encoded = LogixPrimitiveCodec.Encode(LogixDataTypeCode.Int, (short)1234);
+        var decoded = LogixPrimitiveCodec.Decode(LogixDataTypeCode.Int, encoded);
+
+        Assert.Equal([0xD2, 0x04], encoded);
+        Assert.Equal((short)1234, decoded);
+    }
+
+    [Fact]
     public void Encode_and_decode_dint_little_endian()
     {
         var encoded = LogixPrimitiveCodec.Encode(LogixDataTypeCode.Dint, 123456);
@@ -22,6 +42,16 @@ public class LogixPrimitiveCodecTests
 
         Assert.Equal([0x40, 0xE2, 0x01, 0x00], encoded);
         Assert.Equal(123456, decoded);
+    }
+
+    [Fact]
+    public void Encode_and_decode_lint_little_endian()
+    {
+        var encoded = LogixPrimitiveCodec.Encode(LogixDataTypeCode.Lint, 1234567890123L);
+        var decoded = LogixPrimitiveCodec.Decode(LogixDataTypeCode.Lint, encoded);
+
+        Assert.Equal([0xCB, 0x04, 0xFB, 0x71, 0x1F, 0x01, 0x00, 0x00], encoded);
+        Assert.Equal(1234567890123L, decoded);
     }
 
     [Fact]
@@ -67,6 +97,21 @@ public class LogixPrimitiveCodecTests
     {
         Assert.Throws<ArgumentException>(() =>
             LogixPrimitiveCodec.DecodeMany(LogixDataTypeCode.Dint, [0x01, 0x00], 1));
+    }
+
+    [Fact]
+    public void DecodeMany_decodes_int_values()
+    {
+        byte[] data =
+        [
+            0x01, 0x00,
+            0x02, 0x00,
+            0x03, 0x00
+        ];
+
+        var decoded = LogixPrimitiveCodec.DecodeMany(LogixDataTypeCode.Int, data, 3);
+
+        Assert.Equal([(short)1, (short)2, (short)3], decoded);
     }
 
     [Fact]

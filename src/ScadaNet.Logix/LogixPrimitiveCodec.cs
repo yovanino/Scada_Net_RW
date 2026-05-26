@@ -12,7 +12,10 @@ public static class LogixPrimitiveCodec
         return type switch
         {
             LogixDataTypeCode.Bool => [(byte)((bool)value! ? 1 : 0)],
+            LogixDataTypeCode.Sint => [(byte)Convert.ToSByte(value)],
+            LogixDataTypeCode.Int => EncodeInt(Convert.ToInt16(value)),
             LogixDataTypeCode.Dint => EncodeDint(Convert.ToInt32(value)),
+            LogixDataTypeCode.Lint => EncodeLint(Convert.ToInt64(value)),
             LogixDataTypeCode.Real => EncodeReal(Convert.ToSingle(value)),
             LogixDataTypeCode.String => EncodeString((string)value!),
             _ => throw new NotSupportedException($"Logix type '{type}' is not supported.")
@@ -24,7 +27,10 @@ public static class LogixPrimitiveCodec
         return type switch
         {
             LogixDataTypeCode.Bool => data.Length > 0 && data[0] != 0,
+            LogixDataTypeCode.Sint => unchecked((sbyte)data[0]),
+            LogixDataTypeCode.Int => BinaryPrimitives.ReadInt16LittleEndian(data),
             LogixDataTypeCode.Dint => BinaryPrimitives.ReadInt32LittleEndian(data),
+            LogixDataTypeCode.Lint => BinaryPrimitives.ReadInt64LittleEndian(data),
             LogixDataTypeCode.Real => BitConverter.Int32BitsToSingle(
                 BinaryPrimitives.ReadInt32LittleEndian(data)),
             LogixDataTypeCode.String => DecodeString(data),
@@ -94,10 +100,24 @@ public static class LogixPrimitiveCodec
         return values;
     }
 
+    private static byte[] EncodeInt(short value)
+    {
+        var data = new byte[sizeof(short)];
+        BinaryPrimitives.WriteInt16LittleEndian(data, value);
+        return data;
+    }
+
     private static byte[] EncodeDint(int value)
     {
         var data = new byte[sizeof(int)];
         BinaryPrimitives.WriteInt32LittleEndian(data, value);
+        return data;
+    }
+
+    private static byte[] EncodeLint(long value)
+    {
+        var data = new byte[sizeof(long)];
+        BinaryPrimitives.WriteInt64LittleEndian(data, value);
         return data;
     }
 
@@ -150,7 +170,10 @@ public static class LogixPrimitiveCodec
         return type switch
         {
             LogixDataTypeCode.Bool => sizeof(byte),
+            LogixDataTypeCode.Sint => sizeof(sbyte),
+            LogixDataTypeCode.Int => sizeof(short),
             LogixDataTypeCode.Dint => sizeof(int),
+            LogixDataTypeCode.Lint => sizeof(long),
             LogixDataTypeCode.Real => sizeof(float),
             LogixDataTypeCode.String => sizeof(int) + LogixStringMaxLength,
             _ => null

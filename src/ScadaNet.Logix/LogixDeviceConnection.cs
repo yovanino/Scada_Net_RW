@@ -130,7 +130,10 @@ public sealed class LogixDeviceConnection : IDeviceConnection, IArrayDeviceConne
         return value switch
         {
             bool => LogixDataTypeCode.Bool,
+            sbyte => LogixDataTypeCode.Sint,
+            short => LogixDataTypeCode.Int,
             int => LogixDataTypeCode.Dint,
+            long => LogixDataTypeCode.Lint,
             float or double => LogixDataTypeCode.Real,
             string => LogixDataTypeCode.String,
             _ => throw new NotSupportedException(

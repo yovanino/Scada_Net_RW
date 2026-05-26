@@ -34,6 +34,22 @@ public class LogixDeviceConnectionTests
     }
 
     [Fact]
+    public async Task WriteAsync_infers_sint_int_and_lint_values()
+    {
+        var client = new FakeLogixClient(readValue: null);
+        await using var connection = new LogixDeviceConnection("line1-plc", client);
+
+        await connection.WriteAsync(new SignalRef("line1-plc", "Small"), (sbyte)12);
+        Assert.Equal(LogixDataTypeCode.Sint, client.LastWriteType);
+
+        await connection.WriteAsync(new SignalRef("line1-plc", "Medium"), (short)1234);
+        Assert.Equal(LogixDataTypeCode.Int, client.LastWriteType);
+
+        await connection.WriteAsync(new SignalRef("line1-plc", "Large"), 1234567890123L);
+        Assert.Equal(LogixDataTypeCode.Lint, client.LastWriteType);
+    }
+
+    [Fact]
     public async Task WriteAsync_rejects_unsupported_values()
     {
         var client = new FakeLogixClient(readValue: null);
@@ -148,6 +164,20 @@ public class LogixDeviceConnectionTests
         Assert.Equal("Speeds", client.LastWriteTag);
         Assert.Equal(LogixDataTypeCode.Real, client.LastWriteType);
         Assert.Equal([1, 2, 3], Assert.IsAssignableFrom<IEnumerable<object?>>(client.LastWriteValue));
+    }
+
+    [Fact]
+    public async Task WriteArrayAsync_infers_short_arrays_as_int_values()
+    {
+        var client = new FakeLogixClient(readValue: null);
+        await using var connection = new LogixDeviceConnection("line1-plc", client);
+
+        await connection.WriteArrayAsync(
+            new SignalRef("line1-plc", "SmallCounters"),
+            [(short)1, (short)2]);
+
+        Assert.Equal("SmallCounters", client.LastWriteTag);
+        Assert.Equal(LogixDataTypeCode.Int, client.LastWriteType);
     }
 
     [Fact]
