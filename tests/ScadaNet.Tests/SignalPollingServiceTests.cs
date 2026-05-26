@@ -109,9 +109,25 @@ public class SignalPollingServiceTests
             return ValueTask.FromResult(values);
         }
 
+        public ValueTask<SignalValue> ReadArrayAsync(
+            SignalRef signal,
+            ushort elementCount,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
         public ValueTask WriteAsync(
             SignalRef signal,
             object? value,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask WriteArrayAsync(
+            SignalRef signal,
+            IReadOnlyList<object?> values,
             CancellationToken cancellationToken = default)
         {
             throw new NotSupportedException();

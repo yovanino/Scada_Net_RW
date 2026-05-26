@@ -56,6 +56,39 @@ public class LogixDeviceConnectionTests
         Assert.Equal("hello", client.LastWriteValue);
     }
 
+    [Fact]
+    public async Task ReadArrayAsync_reads_tag_array_and_returns_signal_value()
+    {
+        var client = new FakeLogixClient(readValue: null)
+        {
+            ReadArrayValue = [1, 2, 3]
+        };
+        await using var connection = new LogixDeviceConnection("line1-plc", client);
+        var signal = new SignalRef("line1-plc", "Counters");
+
+        var value = await connection.ReadArrayAsync(signal, 3);
+
+        Assert.Equal("Counters", client.LastReadTag);
+        Assert.Equal((ushort)3, client.LastReadArrayCount);
+        Assert.Equal(signal, value.Ref);
+        Assert.Equal(client.ReadArrayValue, value.Value);
+    }
+
+    [Fact]
+    public async Task WriteArrayAsync_infers_type_from_first_value()
+    {
+        var client = new FakeLogixClient(readValue: null);
+        await using var connection = new LogixDeviceConnection("line1-plc", client);
+
+        await connection.WriteArrayAsync(
+            new SignalRef("line1-plc", "Counters"),
+            [1, 2, 3]);
+
+        Assert.Equal("Counters", client.LastWriteTag);
+        Assert.Equal(LogixDataTypeCode.Dint, client.LastWriteType);
+        Assert.Equal([1, 2, 3], Assert.IsAssignableFrom<IEnumerable<object?>>(client.LastWriteValue));
+    }
+
     private sealed class FakeLogixClient : ILogixClient
     {
         private readonly object? _readValue;
@@ -66,9 +99,11 @@ public class LogixDeviceConnectionTests
         }
 
         public string? LastReadTag { get; private set; }
+        public ushort? LastReadArrayCount { get; private set; }
         public string? LastWriteTag { get; private set; }
         public LogixDataTypeCode? LastWriteType { get; private set; }
         public object? LastWriteValue { get; private set; }
+        public IReadOnlyList<object?> ReadArrayValue { get; init; } = [];
 
         public ValueTask DisposeAsync()
         {
@@ -96,7 +131,9 @@ public class LogixDeviceConnectionTests
             ushort elementCount,
             CancellationToken cancellationToken = default)
         {
-            return ValueTask.FromResult<IReadOnlyList<T>>([]);
+            LastReadTag = tagName;
+            LastReadArrayCount = elementCount;
+            return ValueTask.FromResult<IReadOnlyList<T>>(ReadArrayValue.Cast<T>().ToArray());
         }
 
         public ValueTask WriteAsync(

@@ -59,6 +59,73 @@ public class PlcRuntimeTests
     }
 
     [Fact]
+    public async Task ReadArrayAsync_uses_array_connection_and_updates_snapshot()
+    {
+        var connection = new FakeArrayConnection();
+        var registry = new DeviceRegistry([
+            new DeviceDefinition("line1-plc", "fake", "127.0.0.1")
+        ]);
+        var pool = new FakeConnectionPool(connection);
+        var snapshots = new SignalSnapshotStore();
+        var runtime = new PlcRuntime(registry, pool, snapshots, new WriteAuditStore());
+        var signal = new SignalRef("line1-plc", "Counters");
+
+        var value = await runtime.ReadArrayAsync(signal, 3);
+
+        Assert.Equal("line1-plc", pool.LastDeviceName);
+        Assert.Equal(signal, connection.LastArrayReadSignal);
+        Assert.Equal((ushort)3, connection.LastArrayReadCount);
+        Assert.Equal([1, 2, 3], Assert.IsAssignableFrom<IEnumerable<int>>(value.Value));
+        Assert.True(snapshots.TryGet(signal, out var snapshot));
+        Assert.Equal([1, 2, 3], Assert.IsAssignableFrom<IEnumerable<int>>(snapshot.Value));
+    }
+
+    [Fact]
+    public async Task WriteArrayAsync_uses_array_connection_and_audits_write()
+    {
+        var connection = new FakeArrayConnection();
+        var registry = new DeviceRegistry([
+            new DeviceDefinition("line1-plc", "fake", "127.0.0.1")
+            {
+                WritesEnabled = true,
+                WritableAddresses = { "Counters" }
+            }
+        ]);
+        var pool = new FakeConnectionPool(connection);
+        var audit = new WriteAuditStore();
+        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore(), audit);
+        var signal = new SignalRef("line1-plc", "Counters");
+        IReadOnlyList<object?> values = [1, 2, 3];
+
+        await runtime.WriteArrayAsync(signal, values);
+
+        Assert.Equal("line1-plc", pool.LastDeviceName);
+        Assert.Equal(signal, connection.LastArrayWrittenSignal);
+        Assert.Equal(values, connection.LastArrayWrittenValue);
+
+        var record = Assert.Single(audit.GetRecent());
+        Assert.True(record.Succeeded);
+        Assert.Equal(signal, record.Signal);
+        Assert.Equal(values, record.Value);
+    }
+
+    [Fact]
+    public async Task ReadArrayAsync_rejects_connections_without_array_support()
+    {
+        var connection = new FakeConnection();
+        var registry = new DeviceRegistry([
+            new DeviceDefinition("line1-plc", "fake", "127.0.0.1")
+        ]);
+        var pool = new FakeConnectionPool(connection);
+        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore(), new WriteAuditStore());
+
+        var error = await Assert.ThrowsAsync<NotSupportedException>(async () =>
+            await runtime.ReadArrayAsync(new SignalRef("line1-plc", "Counters"), 3));
+
+        Assert.Contains("does not support array reads", error.Message);
+    }
+
+    [Fact]
     public async Task WriteAsync_rejects_when_device_writes_are_disabled()
     {
         var connection = new FakeConnection();
@@ -193,6 +260,73 @@ public class PlcRuntimeTests
         {
             LastWrittenSignal = signal;
             LastWrittenValue = value;
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class FakeArrayConnection : IDeviceConnection, IArrayDeviceConnection
+    {
+        public DeviceIdentity Identity { get; } = new("Test", "Fake", null, null, null);
+        public DeviceCapabilities Capabilities =>
+            DeviceCapabilities.Read |
+            DeviceCapabilities.Write |
+            DeviceCapabilities.ReadArray |
+            DeviceCapabilities.WriteArray;
+
+        public SignalRef? LastArrayReadSignal { get; private set; }
+        public ushort? LastArrayReadCount { get; private set; }
+        public SignalRef? LastArrayWrittenSignal { get; private set; }
+        public IReadOnlyList<object?>? LastArrayWrittenValue { get; private set; }
+
+        public ValueTask DisposeAsync()
+        {
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask<SignalValue> ReadAsync(
+            SignalRef signal,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask<IReadOnlyList<SignalValue>> ReadManyAsync(
+            IReadOnlyList<SignalRef> signals,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask WriteAsync(
+            SignalRef signal,
+            object? value,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask<SignalValue> ReadArrayAsync(
+            SignalRef signal,
+            ushort elementCount,
+            CancellationToken cancellationToken = default)
+        {
+            LastArrayReadSignal = signal;
+            LastArrayReadCount = elementCount;
+
+            return ValueTask.FromResult(new SignalValue(
+                signal,
+                new[] { 1, 2, 3 },
+                SignalQuality.Good,
+                DateTimeOffset.UtcNow));
+        }
+
+        public ValueTask WriteArrayAsync(
+            SignalRef signal,
+            IReadOnlyList<object?> values,
+            CancellationToken cancellationToken = default)
+        {
+            LastArrayWrittenSignal = signal;
+            LastArrayWrittenValue = values;
             return ValueTask.CompletedTask;
         }
     }

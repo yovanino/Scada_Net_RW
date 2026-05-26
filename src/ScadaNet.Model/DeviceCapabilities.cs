@@ -12,5 +12,7 @@ public enum DeviceCapabilities
     Discover = 32,
     Metadata = 64,
     UdtMetadata = 128,
-    ImplicitIo = 256
+    ImplicitIo = 256,
+    ReadArray = 512,
+    WriteArray = 1024
 }

@@ -1,4 +1,5 @@
 using ScadaNet.Model;
+using ScadaNet.Protocols;
 
 namespace ScadaNet.Runtime;
 
@@ -59,6 +60,29 @@ public sealed class PlcRuntime : IPlcRuntime
         return values;
     }
 
+    public async ValueTask<SignalValue> ReadArrayAsync(
+        SignalRef signal,
+        ushort elementCount,
+        CancellationToken cancellationToken = default)
+    {
+        await using var lease = await _connections
+            .RentAsync(signal.DeviceName, cancellationToken)
+            .ConfigureAwait(false);
+
+        if (lease.Connection is not IArrayDeviceConnection arrayConnection)
+        {
+            throw new NotSupportedException(
+                $"Device '{signal.DeviceName}' does not support array reads.");
+        }
+
+        var value = await arrayConnection
+            .ReadArrayAsync(signal, elementCount, cancellationToken)
+            .ConfigureAwait(false);
+
+        _snapshots.Update(value);
+        return value;
+    }
+
     public async ValueTask WriteAsync(
         SignalRef signal,
         object? value,
@@ -80,6 +104,37 @@ public sealed class PlcRuntime : IPlcRuntime
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
             AuditWrite(signal, value, succeeded: false, ex.Message);
+            throw;
+        }
+    }
+
+    public async ValueTask WriteArrayAsync(
+        SignalRef signal,
+        IReadOnlyList<object?> values,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            EnsureWriteAllowed(signal);
+
+            await using var lease = await _connections
+                .RentAsync(signal.DeviceName, cancellationToken)
+                .ConfigureAwait(false);
+
+            if (lease.Connection is not IArrayDeviceConnection arrayConnection)
+            {
+                throw new NotSupportedException(
+                    $"Device '{signal.DeviceName}' does not support array writes.");
+            }
+
+            await arrayConnection.WriteArrayAsync(signal, values, cancellationToken)
+                .ConfigureAwait(false);
+
+            AuditWrite(signal, values, succeeded: true, error: null);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            AuditWrite(signal, values, succeeded: false, ex.Message);
             throw;
         }
     }

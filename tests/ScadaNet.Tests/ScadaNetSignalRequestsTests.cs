@@ -44,6 +44,21 @@ public class ScadaNetSignalRequestsTests
         Assert.Equal(12.5, request.GetValue());
     }
 
+    [Fact]
+    public void GetValues_returns_array_values()
+    {
+        var request = JsonSerializer.Deserialize<ScadaNetWriteArrayRequest>(
+            """
+            {
+              "address": "Counters",
+              "values": [1, 2.5, true, "ready", null]
+            }
+            """,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+
+        Assert.Equal([1, 2.5, true, "ready", null], request.GetValues());
+    }
+
     private static ScadaNetWriteSignalRequest DeserializeWriteRequest(string json)
     {
         return JsonSerializer.Deserialize<ScadaNetWriteSignalRequest>(

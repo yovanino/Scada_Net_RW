@@ -103,6 +103,38 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             }
         });
 
+        group.MapGet("/devices/{name}/signals/read-array", async (
+            string name,
+            string address,
+            ushort count,
+            IDeviceRegistry registry,
+            IPlcRuntime runtime,
+            CancellationToken cancellationToken) =>
+        {
+            if (!registry.TryGet(name, out _))
+            {
+                return Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
+            }
+
+            try
+            {
+                var value = await runtime.ReadArrayAsync(
+                        new SignalRef(name, address),
+                        count,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                return Results.Ok(value);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                return ScadaNetHttpErrors.ToResult(ex);
+            }
+        });
+
         group.MapPost("/devices/{name}/signals/write", async (
             string name,
             ScadaNetWriteSignalRequest request,
@@ -123,6 +155,37 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                 await runtime.WriteAsync(
                         new SignalRef(name, request.Address),
                         request.GetValue(),
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                return Results.Accepted();
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                return ScadaNetHttpErrors.ToResult(ex);
+            }
+        });
+
+        group.MapPost("/devices/{name}/signals/write-array", async (
+            string name,
+            ScadaNetWriteArrayRequest request,
+            IDeviceRegistry registry,
+            IPlcRuntime runtime,
+            CancellationToken cancellationToken) =>
+        {
+            if (!registry.TryGet(name, out _))
+            {
+                return Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
+            }
+
+            try
+            {
+                await runtime.WriteArrayAsync(
+                        new SignalRef(name, request.Address),
+                        request.GetValues(),
                         cancellationToken)
                     .ConfigureAwait(false);
 

@@ -3,7 +3,7 @@ using ScadaNet.Protocols;
 
 namespace ScadaNet.Logix;
 
-public sealed class LogixDeviceConnection : IDeviceConnection
+public sealed class LogixDeviceConnection : IDeviceConnection, IArrayDeviceConnection
 {
     private readonly ILogixClient _client;
 
@@ -21,7 +21,9 @@ public sealed class LogixDeviceConnection : IDeviceConnection
     public DeviceCapabilities Capabilities =>
         DeviceCapabilities.Read |
         DeviceCapabilities.Write |
-        DeviceCapabilities.ReadMany;
+        DeviceCapabilities.ReadMany |
+        DeviceCapabilities.ReadArray |
+        DeviceCapabilities.WriteArray;
 
     public async ValueTask<SignalValue> ReadAsync(
         SignalRef signal,
@@ -60,6 +62,43 @@ public sealed class LogixDeviceConnection : IDeviceConnection
             signal.Address,
             InferDataType(value),
             value,
+            cancellationToken);
+    }
+
+    public async ValueTask<SignalValue> ReadArrayAsync(
+        SignalRef signal,
+        ushort elementCount,
+        CancellationToken cancellationToken = default)
+    {
+        var value = await _client.ReadArrayAsync<object?>(signal.Address, elementCount, cancellationToken)
+            .ConfigureAwait(false);
+
+        return new SignalValue(
+            signal,
+            value,
+            SignalQuality.Good,
+            DateTimeOffset.UtcNow);
+    }
+
+    public ValueTask WriteArrayAsync(
+        SignalRef signal,
+        IReadOnlyList<object?> values,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(values);
+
+        if (values.Count == 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(values),
+                values.Count,
+                "Logix array write values cannot be empty.");
+        }
+
+        return _client.WriteArrayAsync(
+            signal.Address,
+            InferDataType(values[0]),
+            values,
             cancellationToken);
     }
 
