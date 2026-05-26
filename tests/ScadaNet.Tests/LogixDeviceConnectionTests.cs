@@ -89,6 +89,35 @@ public class LogixDeviceConnectionTests
         Assert.Equal([1, 2, 3], Assert.IsAssignableFrom<IEnumerable<object?>>(client.LastWriteValue));
     }
 
+    [Fact]
+    public async Task WriteArrayAsync_accepts_float_and_double_as_real_values()
+    {
+        var client = new FakeLogixClient(readValue: null);
+        await using var connection = new LogixDeviceConnection("line1-plc", client);
+
+        await connection.WriteArrayAsync(
+            new SignalRef("line1-plc", "Speeds"),
+            [1.5f, 2.5d]);
+
+        Assert.Equal("Speeds", client.LastWriteTag);
+        Assert.Equal(LogixDataTypeCode.Real, client.LastWriteType);
+    }
+
+    [Fact]
+    public async Task WriteArrayAsync_rejects_mixed_primitive_types()
+    {
+        var client = new FakeLogixClient(readValue: null);
+        await using var connection = new LogixDeviceConnection("line1-plc", client);
+
+        var error = await Assert.ThrowsAsync<NotSupportedException>(async () =>
+            await connection.WriteArrayAsync(
+                new SignalRef("line1-plc", "MixedValues"),
+                [1, 2.5d]));
+
+        Assert.Contains("homogeneous", error.Message);
+        Assert.Null(client.LastWriteTag);
+    }
+
     private sealed class FakeLogixClient : ILogixClient
     {
         private readonly object? _readValue;

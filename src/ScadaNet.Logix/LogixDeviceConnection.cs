@@ -95,9 +95,11 @@ public sealed class LogixDeviceConnection : IDeviceConnection, IArrayDeviceConne
                 "Logix array write values cannot be empty.");
         }
 
+        var dataType = InferArrayDataType(values);
+
         return _client.WriteArrayAsync(
             signal.Address,
-            InferDataType(values[0]),
+            dataType,
             values,
             cancellationToken);
     }
@@ -118,5 +120,22 @@ public sealed class LogixDeviceConnection : IDeviceConnection, IArrayDeviceConne
             _ => throw new NotSupportedException(
                 $"Cannot infer a Logix primitive data type for value '{value}'.")
         };
+    }
+
+    private static LogixDataTypeCode InferArrayDataType(IReadOnlyList<object?> values)
+    {
+        var dataType = InferDataType(values[0]);
+
+        for (var index = 1; index < values.Count; index++)
+        {
+            var valueDataType = InferDataType(values[index]);
+            if (valueDataType != dataType)
+            {
+                throw new NotSupportedException(
+                    $"Logix array writes require homogeneous primitive values. Element 0 is '{dataType}' but element {index} is '{valueDataType}'.");
+            }
+        }
+
+        return dataType;
     }
 }
