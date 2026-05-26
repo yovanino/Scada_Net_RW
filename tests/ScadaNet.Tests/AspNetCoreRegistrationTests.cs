@@ -29,6 +29,7 @@ public class AspNetCoreRegistrationTests
         var snapshots = provider.GetRequiredService<ISignalSnapshotStore>();
         var pollingStatuses = provider.GetRequiredService<IPollingStatusStore>();
         var writeAudit = provider.GetRequiredService<IWriteAuditStore>();
+        var health = provider.GetRequiredService<IDeviceHealthService>();
         var polling = provider.GetRequiredService<ISignalPollingService>();
         var runtime = provider.GetRequiredService<IPlcRuntime>();
         var hostedServices = provider.GetServices<IHostedService>().ToArray();
@@ -41,6 +42,7 @@ public class AspNetCoreRegistrationTests
         Assert.IsType<SignalSnapshotStore>(snapshots);
         Assert.IsType<PollingStatusStore>(pollingStatuses);
         Assert.IsType<WriteAuditStore>(writeAudit);
+        Assert.IsType<DeviceHealthService>(health);
         Assert.IsType<SignalPollingService>(polling);
         Assert.IsType<PlcRuntime>(runtime);
         Assert.Contains(hostedServices, service => service is ScadaNetPollingHostedService);

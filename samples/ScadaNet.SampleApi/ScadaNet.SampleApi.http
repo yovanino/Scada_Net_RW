@@ -71,3 +71,13 @@ GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/writes/audit
 Accept: application/json
 
 ###
+
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/health/devices
+Accept: application/json
+
+###
+
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/health/devices/line1-plc
+Accept: application/json
+
+###

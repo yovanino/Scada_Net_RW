@@ -213,6 +213,23 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             return Results.Ok(audit.GetDeviceRecords(name, count ?? 100));
         });
 
+        group.MapGet("/health/devices", (IDeviceHealthService health) =>
+        {
+            return Results.Ok(health.GetAll());
+        });
+
+        group.MapGet("/health/devices/{name}", (
+            string name,
+            IDeviceHealthService health) =>
+        {
+            return health.TryGet(name, out var summary)
+                ? Results.Ok(summary)
+                : Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
+        });
+
         return group;
     }
 }
