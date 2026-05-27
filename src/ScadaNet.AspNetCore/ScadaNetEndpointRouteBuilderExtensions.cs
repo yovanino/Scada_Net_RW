@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using ScadaNet.Model;
+using ScadaNet.Protocols;
 using ScadaNet.Runtime;
 
 namespace ScadaNet.AspNetCore;
@@ -74,6 +75,16 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                 minimumSeverity,
                 source,
                 count)));
+        });
+
+        group.MapGet("/discovery/drivers", (IEnumerable<IDeviceDriver> drivers) =>
+        {
+            var result = drivers
+                .Select(driver => new ScadaNetDiscoveryDriverInfo(driver.DriverName))
+                .OrderBy(driver => driver.Name, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            return Results.Ok(result);
         });
 
         group.MapGet("/discovery/detect", (

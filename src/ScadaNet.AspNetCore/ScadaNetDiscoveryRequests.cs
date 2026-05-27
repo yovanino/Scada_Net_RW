@@ -59,3 +59,5 @@ public sealed record ScadaNetDiscoveryRequest(
         return ports;
     }
 }
+
+public sealed record ScadaNetDiscoveryDriverInfo(string Name);
