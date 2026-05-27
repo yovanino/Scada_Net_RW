@@ -226,6 +226,16 @@ Accept: application/json
 
 ###
 
+DELETE {{ScadaNet.SampleApi_HostAddress}}/scadanet/connections/pool/line1-plc
+Accept: application/json
+
+###
+
+DELETE {{ScadaNet.SampleApi_HostAddress}}/scadanet/connections/pool
+Accept: application/json
+
+###
+
 GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/writes/audit
 Accept: application/json
 
