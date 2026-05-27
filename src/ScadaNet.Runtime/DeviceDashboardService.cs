@@ -131,20 +131,35 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
 
     public IReadOnlyList<DeviceDashboardIssue> GetIssues()
     {
+        return GetIssues(filter: null);
+    }
+
+    public IReadOnlyList<DeviceDashboardIssue> GetIssues(DeviceDashboardIssueFilter? filter)
+    {
         var connections = _connections.GetStatus();
         var pollingGroups = _pollingGroups.GetAll();
 
-        return _devices.Devices
+        var issues = _devices.Devices
             .SelectMany(device => GetIssues(device, connections, pollingGroups))
             .OrderByDescending(issue => issue.Severity)
             .ThenBy(issue => issue.DeviceName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(issue => issue.Source, StringComparer.OrdinalIgnoreCase)
             .ThenBy(issue => issue.Code, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+
+        return ApplyFilter(issues, filter);
     }
 
     public bool TryGetIssues(
         string deviceName,
+        out IReadOnlyList<DeviceDashboardIssue> issues)
+    {
+        return TryGetIssues(deviceName, filter: null, out issues);
+    }
+
+    public bool TryGetIssues(
+        string deviceName,
+        DeviceDashboardIssueFilter? filter,
         out IReadOnlyList<DeviceDashboardIssue> issues)
     {
         if (!_devices.TryGet(deviceName, out var device))
@@ -158,6 +173,8 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             .ThenBy(issue => issue.Source, StringComparer.OrdinalIgnoreCase)
             .ThenBy(issue => issue.Code, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+
+        issues = ApplyFilter(issues, filter);
         return true;
     }
 
@@ -343,5 +360,37 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         return health.Messages.Count == 0
             ? $"Device health is {health.State}."
             : string.Join(" ", health.Messages);
+    }
+
+    private static IReadOnlyList<DeviceDashboardIssue> ApplyFilter(
+        IReadOnlyList<DeviceDashboardIssue> issues,
+        DeviceDashboardIssueFilter? filter)
+    {
+        if (filter is null)
+        {
+            return issues;
+        }
+
+        var filtered = issues.AsEnumerable();
+
+        if (filter.MinimumSeverity.HasValue)
+        {
+            filtered = filtered.Where(issue => issue.Severity >= filter.MinimumSeverity.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Source))
+        {
+            filtered = filtered.Where(issue => string.Equals(
+                issue.Source,
+                filter.Source,
+                StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (filter.Count.HasValue)
+        {
+            filtered = filtered.Take(Math.Max(0, filter.Count.Value));
+        }
+
+        return filtered.ToArray();
     }
 }

@@ -45,6 +45,11 @@ Accept: application/json
 
 ###
 
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/dashboard/issues?minimumSeverity=Critical&source=polling&count=10
+Accept: application/json
+
+###
+
 GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/discovery
 Accept: application/json
 
@@ -61,6 +66,11 @@ Accept: application/json
 ###
 
 GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/dashboard/issues
+Accept: application/json
+
+###
+
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/dashboard/issues?source=health
 Accept: application/json
 
 ###

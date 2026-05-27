@@ -42,9 +42,16 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             return Results.Ok(dashboards.GetOverview());
         });
 
-        group.MapGet("/devices/dashboard/issues", (IDeviceDashboardService dashboards) =>
+        group.MapGet("/devices/dashboard/issues", (
+            DeviceDashboardIssueSeverity? minimumSeverity,
+            string? source,
+            int? count,
+            IDeviceDashboardService dashboards) =>
         {
-            return Results.Ok(dashboards.GetIssues());
+            return Results.Ok(dashboards.GetIssues(new DeviceDashboardIssueFilter(
+                minimumSeverity,
+                source,
+                count)));
         });
 
         group.MapGet("/devices/{name}/discovery", async (
@@ -95,9 +102,18 @@ public static class ScadaNetEndpointRouteBuilderExtensions
 
         group.MapGet("/devices/{name}/dashboard/issues", (
             string name,
+            DeviceDashboardIssueSeverity? minimumSeverity,
+            string? source,
+            int? count,
             IDeviceDashboardService dashboards) =>
         {
-            return dashboards.TryGetIssues(name, out var issues)
+            return dashboards.TryGetIssues(
+                name,
+                new DeviceDashboardIssueFilter(
+                    minimumSeverity,
+                    source,
+                    count),
+                out var issues)
                 ? Results.Ok(issues)
                 : Results.NotFound(new
                 {

@@ -16,7 +16,14 @@ public interface IDeviceDashboardService
 
     IReadOnlyList<DeviceDashboardIssue> GetIssues();
 
+    IReadOnlyList<DeviceDashboardIssue> GetIssues(DeviceDashboardIssueFilter? filter);
+
     bool TryGetIssues(string deviceName, out IReadOnlyList<DeviceDashboardIssue> issues);
+
+    bool TryGetIssues(
+        string deviceName,
+        DeviceDashboardIssueFilter? filter,
+        out IReadOnlyList<DeviceDashboardIssue> issues);
 
     bool TryGet(string deviceName, out DeviceDashboard dashboard);
 }

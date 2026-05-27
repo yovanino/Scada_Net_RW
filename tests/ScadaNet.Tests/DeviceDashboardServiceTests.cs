@@ -447,6 +447,52 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public void GetIssues_can_filter_by_source_severity_and_count()
+    {
+        var line1 = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        var line2 = new DeviceDefinition("line2-plc", "fake", "127.0.0.2");
+        var registry = new DeviceRegistry([line2, line1]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        var group1 = new SignalPollingGroupDefinition
+        {
+            Name = "line1-fast",
+            DeviceName = "line1-plc"
+        };
+        var group2 = new SignalPollingGroupDefinition
+        {
+            Name = "line2-fast",
+            DeviceName = "line2-plc"
+        };
+        statuses.MarkFailure(
+            group1,
+            TimeSpan.FromMilliseconds(25),
+            new InvalidOperationException("Line 1 timeout."));
+        statuses.MarkFailure(
+            group2,
+            TimeSpan.FromMilliseconds(25),
+            new InvalidOperationException("Line 2 timeout."));
+        using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([group1, group2]), statuses),
+            snapshots,
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var issues = service.GetIssues(new DeviceDashboardIssueFilter(
+            MinimumSeverity: DeviceDashboardIssueSeverity.Critical,
+            Source: "polling",
+            Count: 1));
+
+        var issue = Assert.Single(issues);
+        Assert.Equal("line1-plc", issue.DeviceName);
+        Assert.Equal("polling", issue.Source);
+        Assert.Equal(DeviceDashboardIssueSeverity.Critical, issue.Severity);
+    }
+
+    [Fact]
     public async Task TryGetIssues_returns_issues_for_one_device()
     {
         var line1 = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
@@ -487,6 +533,41 @@ public class DeviceDashboardServiceTests
         Assert.All(issues, issue => Assert.Equal("line1-plc", issue.DeviceName));
         Assert.Contains(issues, issue => issue.Message.Contains("Line 1 timeout."));
         Assert.DoesNotContain(issues, issue => issue.Message.Contains("Line 2 timeout."));
+    }
+
+    [Fact]
+    public void TryGetIssues_can_filter_one_device_by_source()
+    {
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        var registry = new DeviceRegistry([device]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        var group = new SignalPollingGroupDefinition
+        {
+            Name = "line1-fast",
+            DeviceName = "line1-plc"
+        };
+        statuses.MarkFailure(
+            group,
+            TimeSpan.FromMilliseconds(25),
+            new InvalidOperationException("PLC read timeout."));
+        using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([group]), statuses),
+            snapshots,
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var found = service.TryGetIssues(
+            "line1-plc",
+            new DeviceDashboardIssueFilter(Source: "health"),
+            out var issues);
+
+        Assert.True(found);
+        Assert.Single(issues);
+        Assert.All(issues, issue => Assert.Equal("health", issue.Source));
     }
 
     [Fact]
