@@ -310,6 +310,40 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public void TryGetRuntimeStatus_reuses_device_write_audit_summary()
+    {
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        var registry = new DeviceRegistry([device]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        var writeAudit = new CountingWriteAuditStore();
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            new ScopedConnectionPool(
+                new DeviceConnectionPoolStatus(
+                    "line1-plc",
+                    HasConnection: true,
+                    IsInUse: false,
+                    RentCount: 1,
+                    FailedRentCount: 0,
+                    ConnectedAt: DateTimeOffset.UtcNow,
+                    LastRentedAt: DateTimeOffset.UtcNow,
+                    LastFailureAt: null,
+                    LastError: null)),
+            new ScopedPollingGroupMonitor([]),
+            snapshots,
+            new ThrowingSignalSnapshotReader(),
+            writeAudit);
+
+        var found = service.TryGetRuntimeStatus("LINE1-PLC", out var status);
+
+        Assert.True(found);
+        Assert.Equal("line1-plc", status.WriteAudit.DeviceName);
+        Assert.Equal(1, writeAudit.GetDeviceSummaryCount);
+    }
+
+    [Fact]
     public void GetAttentionSummaries_returns_only_devices_with_issues_first()
     {
         var line1 = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
@@ -1188,6 +1222,46 @@ public class DeviceDashboardServiceTests
         {
             summary = default!;
             return false;
+        }
+    }
+
+    private sealed class CountingWriteAuditStore : IWriteAuditStore
+    {
+        public int GetDeviceSummaryCount { get; private set; }
+
+        public void Add(WriteAuditRecord record)
+        {
+            throw new NotSupportedException();
+        }
+
+        public IReadOnlyList<WriteAuditRecord> GetRecent(int count = 100)
+        {
+            throw new NotSupportedException();
+        }
+
+        public IReadOnlyList<WriteAuditRecord> GetDeviceRecords(
+            string deviceName,
+            int count = 100)
+        {
+            throw new NotSupportedException();
+        }
+
+        public WriteAuditSummary GetSummary()
+        {
+            throw new NotSupportedException();
+        }
+
+        public WriteAuditSummary GetDeviceSummary(string deviceName)
+        {
+            GetDeviceSummaryCount++;
+            return new WriteAuditSummary(
+                deviceName,
+                WriteCount: 0,
+                SucceededWriteCount: 0,
+                FailedWriteCount: 0,
+                LastWriteTimestamp: null,
+                LastFailedWriteTimestamp: null,
+                LastError: null);
         }
     }
 

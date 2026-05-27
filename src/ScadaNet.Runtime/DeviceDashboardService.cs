@@ -262,19 +262,15 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         var pollingGroups = _pollingGroups.GetForDevice(device.Name);
         var writeAudit = _writeAudit.GetDeviceSummary(device.Name);
 
-        if (!TryBuildSummary(device, connection, pollingGroups, out var summary))
+        if (!_health.TryGet(device.Name, out var health))
         {
             status = default!;
             return false;
         }
 
-        var issues = BuildIssues(
-                device.Name,
-                _health.TryGet(device.Name, out var health) ? health : null,
-                connection,
-                pollingGroups,
-                writeAudit)
+        var issues = BuildIssues(device.Name, health, connection, pollingGroups, writeAudit)
             .ToArray();
+        var summary = BuildSummary(device, health, connection, pollingGroups, issues);
 
         status = new DeviceRuntimeStatus(
             summary,
@@ -348,7 +344,18 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
                 _writeAudit.GetDeviceSummary(device.Name))
             .ToArray();
 
-        summary = new DeviceDashboardSummary(
+        summary = BuildSummary(device, health, connection, devicePollingGroups, issues);
+        return true;
+    }
+
+    private DeviceDashboardSummary BuildSummary(
+        DeviceDefinition device,
+        DeviceHealthSummary health,
+        DeviceConnectionPoolStatus? connection,
+        IReadOnlyList<PollingGroupSummary> devicePollingGroups,
+        IReadOnlyList<DeviceDashboardIssue> issues)
+    {
+        return new DeviceDashboardSummary(
             device.Name,
             device.Driver,
             device.Address,
@@ -361,7 +368,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             device.Signals.Count(signal => _snapshotStore.TryGet(
                 new SignalRef(device.Name, signal.Address),
                 out _)),
-            issues.Length,
+            issues.Count,
             issues.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Warning),
             issues.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Critical),
             CountSource(issues, DeviceDashboardIssueSources.Health),
@@ -370,7 +377,6 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             CountSource(issues, DeviceDashboardIssueSources.WriteAudit),
             health.LastSnapshotTimestamp,
             health.LastPollingTimestamp);
-        return true;
     }
 
     private IReadOnlyList<DeviceDashboardSummary> BuildSummaries(
