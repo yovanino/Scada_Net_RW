@@ -694,8 +694,17 @@ public static class ScadaNetEndpointRouteBuilderExtensions
         group.MapGet("/devices/{name}/signals/{signalName}/snapshot", (
             string name,
             string signalName,
+            IDeviceRegistry registry,
             IDeviceSignalSnapshotReader snapshots) =>
         {
+            if (!registry.TryGet(name, out _))
+            {
+                return Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
+            }
+
             return snapshots.TryGet(name, signalName, out var value)
                 ? Results.Ok(value)
                 : Results.NotFound(new
