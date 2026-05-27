@@ -64,14 +64,10 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         var connections = _connections.GetStatus();
         var pollingGroups = _pollingGroups.GetAll();
 
-        return _devices.Devices
-            .OrderBy(device => device.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(device => TryBuildSummary(device, connections, pollingGroups, out var summary)
-                ? summary
-                : null)
-            .Where(summary => summary is not null)
-            .Select(summary => summary!)
-            .ToArray();
+        return BuildSummaries(
+            _devices.Devices.ToArray(),
+            connections,
+            pollingGroups);
     }
 
     public IReadOnlyList<DeviceDashboardSummary> GetAttentionSummaries(
@@ -164,13 +160,18 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         int? attentionCount = null,
         DeviceDashboardIssueSeverity? minimumSeverity = null)
     {
-        var summaries = GetSummaries();
+        var devices = _devices.Devices.ToArray();
+        var connections = _connections.GetStatus();
+        var pollingGroups = _pollingGroups.GetAll();
+        var summaries = BuildSummaries(devices, connections, pollingGroups);
+        var issues = BuildAllIssues(devices, connections, pollingGroups);
 
         return new ScadaNetRuntimeStatus(
-            BuildOverview(summaries, _devices.Devices.ToArray()),
+            BuildOverview(summaries, devices),
             BuildAttentionSummaries(summaries, attentionCount, minimumSeverity),
-            GetIssueSummaries(new DeviceDashboardIssueFilter(
-                MinimumSeverity: minimumSeverity)),
+            BuildIssueSummaries(ApplyFilter(
+                issues,
+                new DeviceDashboardIssueFilter(MinimumSeverity: minimumSeverity))),
             _writeAudit.GetSummary(),
             DateTimeOffset.UtcNow);
     }
@@ -185,13 +186,10 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         var connections = _connections.GetStatus();
         var pollingGroups = _pollingGroups.GetAll();
 
-        var issues = _devices.Devices
-            .SelectMany(device => GetIssues(device, connections, pollingGroups))
-            .OrderByDescending(issue => issue.Severity)
-            .ThenBy(issue => issue.DeviceName, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(issue => issue.Source, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(issue => issue.Code, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
+        var issues = BuildAllIssues(
+            _devices.Devices.ToArray(),
+            connections,
+            pollingGroups);
 
         return ApplyFilter(issues, filter);
     }
@@ -373,6 +371,35 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             health.LastSnapshotTimestamp,
             health.LastPollingTimestamp);
         return true;
+    }
+
+    private IReadOnlyList<DeviceDashboardSummary> BuildSummaries(
+        IReadOnlyList<DeviceDefinition> devices,
+        IReadOnlyList<DeviceConnectionPoolStatus> connections,
+        IReadOnlyList<PollingGroupSummary> pollingGroups)
+    {
+        return devices
+            .OrderBy(device => device.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(device => TryBuildSummary(device, connections, pollingGroups, out var summary)
+                ? summary
+                : null)
+            .Where(summary => summary is not null)
+            .Select(summary => summary!)
+            .ToArray();
+    }
+
+    private IReadOnlyList<DeviceDashboardIssue> BuildAllIssues(
+        IReadOnlyList<DeviceDefinition> devices,
+        IReadOnlyList<DeviceConnectionPoolStatus> connections,
+        IReadOnlyList<PollingGroupSummary> pollingGroups)
+    {
+        return devices
+            .SelectMany(device => GetIssues(device, connections, pollingGroups))
+            .OrderByDescending(issue => issue.Severity)
+            .ThenBy(issue => issue.DeviceName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(issue => issue.Source, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(issue => issue.Code, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     private static IEnumerable<DeviceDashboardIssue> GetIssues(DeviceDashboard dashboard)

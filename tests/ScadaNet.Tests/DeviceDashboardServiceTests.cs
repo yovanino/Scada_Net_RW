@@ -502,8 +502,8 @@ public class DeviceDashboardServiceTests
         var status = service.GetRuntimeStatus();
 
         Assert.Equal(1, status.Overview.DeviceCount);
-        Assert.Equal(2, connections.GetStatusCount);
-        Assert.Equal(2, pollingGroups.GetAllCount);
+        Assert.Equal(1, connections.GetStatusCount);
+        Assert.Equal(1, pollingGroups.GetAllCount);
     }
 
     [Fact]
