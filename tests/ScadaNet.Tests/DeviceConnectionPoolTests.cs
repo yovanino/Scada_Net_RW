@@ -76,7 +76,9 @@ public class DeviceConnectionPoolTests
         var status = Assert.Single(pool.GetStatus());
         Assert.False(status.HasConnection);
         Assert.Null(status.ConnectedAt);
+        Assert.NotNull(status.LastClosedAt);
         Assert.Equal(1, status.RentCount);
+        Assert.Equal(1, status.CloseCount);
     }
 
     [Fact]
@@ -129,7 +131,12 @@ public class DeviceConnectionPoolTests
 
         Assert.Equal(2, closed);
         Assert.All(factory.Connections, connection => Assert.True(connection.WasDisposed));
-        Assert.All(pool.GetStatus(), status => Assert.False(status.HasConnection));
+        Assert.All(pool.GetStatus(), status =>
+        {
+            Assert.False(status.HasConnection);
+            Assert.Equal(1, status.CloseCount);
+            Assert.NotNull(status.LastClosedAt);
+        });
     }
 
     [Fact]
@@ -172,8 +179,10 @@ public class DeviceConnectionPoolTests
             Assert.False(status.IsInUse);
             Assert.Equal(1, status.RentCount);
             Assert.Equal(0, status.FailedRentCount);
+            Assert.Equal(0, status.CloseCount);
             Assert.NotNull(status.ConnectedAt);
             Assert.NotNull(status.LastRentedAt);
+            Assert.Null(status.LastClosedAt);
             Assert.Null(status.LastFailureAt);
             Assert.Null(status.LastError);
         });
@@ -209,8 +218,10 @@ public class DeviceConnectionPoolTests
         Assert.False(status.IsInUse);
         Assert.Equal(0, status.RentCount);
         Assert.Equal(1, status.FailedRentCount);
+        Assert.Equal(0, status.CloseCount);
         Assert.Null(status.ConnectedAt);
         Assert.Null(status.LastRentedAt);
+        Assert.Null(status.LastClosedAt);
         Assert.NotNull(status.LastFailureAt);
         Assert.Equal("PLC unavailable", status.LastError);
     }

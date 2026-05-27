@@ -97,6 +97,8 @@ public sealed class DeviceConnectionPool : IDeviceConnectionPool, IAsyncDisposab
             await entry.Connection.DisposeAsync().ConfigureAwait(false);
             entry.Connection = null;
             entry.ConnectedAt = null;
+            entry.LastClosedAt = DateTimeOffset.UtcNow;
+            entry.CloseCount++;
             return true;
         }
         finally
@@ -123,6 +125,8 @@ public sealed class DeviceConnectionPool : IDeviceConnectionPool, IAsyncDisposab
                 await entry.Connection.DisposeAsync().ConfigureAwait(false);
                 entry.Connection = null;
                 entry.ConnectedAt = null;
+                entry.LastClosedAt = DateTimeOffset.UtcNow;
+                entry.CloseCount++;
                 closed++;
             }
             finally
@@ -177,6 +181,8 @@ public sealed class DeviceConnectionPool : IDeviceConnectionPool, IAsyncDisposab
         public DateTimeOffset? LastRentedAt { get; set; }
         public long RentCount { get; set; }
         public long FailedRentCount { get; set; }
+        public long CloseCount { get; set; }
+        public DateTimeOffset? LastClosedAt { get; set; }
         public DateTimeOffset? LastFailureAt { get; set; }
         public string? LastError { get; set; }
     }
@@ -189,8 +195,10 @@ public sealed class DeviceConnectionPool : IDeviceConnectionPool, IAsyncDisposab
             entry.Lock.CurrentCount == 0,
             entry.RentCount,
             entry.FailedRentCount,
+            entry.CloseCount,
             entry.ConnectedAt,
             entry.LastRentedAt,
+            entry.LastClosedAt,
             entry.LastFailureAt,
             entry.LastError);
     }
