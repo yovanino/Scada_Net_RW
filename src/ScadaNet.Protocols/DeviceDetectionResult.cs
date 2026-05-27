@@ -9,4 +9,5 @@ public sealed record DeviceDetectionResult(
     string? RecommendedDriver,
     double Confidence,
     DeviceIdentity? Identity,
-    IReadOnlyList<string> Capabilities);
+    IReadOnlyList<string> Capabilities,
+    TimeSpan? Duration = null);

@@ -16,9 +16,11 @@ public sealed class DiscoveryService : IDiscoveryService
         ProbeRequest request,
         CancellationToken cancellationToken = default)
     {
+        var startedAt = Stopwatch.GetTimestamp();
+
         if (_drivers.Count == 0)
         {
-            return NoMatch(request, []);
+            return NoMatch(request, [], Stopwatch.GetElapsedTime(startedAt));
         }
 
         var results = await Task.WhenAll(_drivers
@@ -33,10 +35,14 @@ public sealed class DiscoveryService : IDiscoveryService
 
         if (best is null)
         {
-            return NoMatch(request, probes);
+            return NoMatch(request, probes, Stopwatch.GetElapsedTime(startedAt));
         }
 
-        return best with { Probes = probes };
+        return best with
+        {
+            Probes = probes,
+            Duration = Stopwatch.GetElapsedTime(startedAt)
+        };
     }
 
     private static async Task<DeviceDetectionResult> ProbeDriverAsync(
@@ -77,7 +83,8 @@ public sealed class DiscoveryService : IDiscoveryService
 
     private static DeviceDetectionResult NoMatch(
         ProbeRequest request,
-        IReadOnlyList<ProtocolProbeResult> probes)
+        IReadOnlyList<ProtocolProbeResult> probes,
+        TimeSpan duration)
     {
         return new DeviceDetectionResult(
             request.Address,
@@ -86,6 +93,7 @@ public sealed class DiscoveryService : IDiscoveryService
             RecommendedDriver: null,
             Confidence: 0,
             Identity: null,
-            Capabilities: []);
+            Capabilities: [],
+            Duration: duration);
     }
 }

@@ -21,8 +21,24 @@ public class DiscoveryServiceTests
         Assert.Equal("High", result.RecommendedDriver);
         Assert.Equal(0.9, result.Confidence);
         Assert.Equal(2, result.Probes.Count);
+        Assert.NotNull(result.Duration);
         Assert.Contains(result.Probes, probe => probe.Protocol == "Low");
         Assert.Contains(result.Probes, probe => probe.Protocol == "High");
+    }
+
+    [Fact]
+    public async Task DetectAsync_returns_duration_when_no_drivers_are_registered()
+    {
+        var service = new DiscoveryService([]);
+
+        var result = await service.DetectAsync(new ProbeRequest(
+            "192.168.0.10",
+            [44818],
+            TimeSpan.FromSeconds(1)));
+
+        Assert.Equal(0, result.Confidence);
+        Assert.Empty(result.Probes);
+        Assert.NotNull(result.Duration);
     }
 
     [Fact]
