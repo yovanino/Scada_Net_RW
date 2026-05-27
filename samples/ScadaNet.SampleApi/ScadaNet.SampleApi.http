@@ -20,6 +20,11 @@ Accept: application/json
 
 ###
 
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/dashboard/attention
+Accept: application/json
+
+###
+
 GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/dashboard/overview
 Accept: application/json
 

@@ -184,6 +184,50 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public void GetAttentionSummaries_returns_only_devices_with_issues_first()
+    {
+        var line1 = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        var line2 = new DeviceDefinition("line2-plc", "fake", "127.0.0.2");
+        var line3 = new DeviceDefinition("line3-plc", "fake", "127.0.0.3");
+        var registry = new DeviceRegistry([line2, line3, line1]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        var failedGroup = new SignalPollingGroupDefinition
+        {
+            Name = "line1-fast",
+            DeviceName = "line1-plc"
+        };
+        var healthyGroup = new SignalPollingGroupDefinition
+        {
+            Name = "line3-fast",
+            DeviceName = "line3-plc"
+        };
+        statuses.MarkFailure(
+            failedGroup,
+            TimeSpan.FromMilliseconds(25),
+            new InvalidOperationException("PLC read timeout."));
+        statuses.MarkSuccess(
+            healthyGroup,
+            TimeSpan.FromMilliseconds(10),
+            signalCount: 0);
+        using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([failedGroup, healthyGroup]), statuses),
+            snapshots,
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var attention = service.GetAttentionSummaries();
+
+        Assert.Equal(["line1-plc", "line2-plc"], attention.Select(summary => summary.DeviceName));
+        Assert.True(attention[0].CriticalIssueCount > 0);
+        Assert.Equal(0, attention[1].CriticalIssueCount);
+        Assert.True(attention[1].WarningIssueCount > 0);
+    }
+
+    [Fact]
     public void GetSummaries_and_overview_do_not_build_detailed_signal_snapshots()
     {
         var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");

@@ -29,6 +29,11 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             return Results.Ok(dashboards.GetSummaries());
         });
 
+        group.MapGet("/devices/dashboard/attention", (IDeviceDashboardService dashboards) =>
+        {
+            return Results.Ok(dashboards.GetAttentionSummaries());
+        });
+
         group.MapGet("/devices/dashboard/overview", (IDeviceDashboardService dashboards) =>
         {
             return Results.Ok(dashboards.GetOverview());

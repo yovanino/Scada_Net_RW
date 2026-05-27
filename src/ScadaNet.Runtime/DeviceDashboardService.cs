@@ -53,6 +53,16 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             .ToArray();
     }
 
+    public IReadOnlyList<DeviceDashboardSummary> GetAttentionSummaries()
+    {
+        return GetSummaries()
+            .Where(summary => summary.IssueCount > 0)
+            .OrderByDescending(summary => summary.CriticalIssueCount)
+            .ThenByDescending(summary => summary.WarningIssueCount)
+            .ThenBy(summary => summary.DeviceName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
     public bool TryGetSummary(
         string deviceName,
         out DeviceDashboardSummary summary)
