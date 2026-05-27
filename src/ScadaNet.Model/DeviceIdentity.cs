@@ -6,4 +6,7 @@ public sealed record DeviceIdentity(
     string? ProductCode,
     string? Revision,
     string? SerialNumber,
-    string? VendorCode = null);
+    string? VendorCode = null,
+    string? DeviceTypeCode = null,
+    string? StatusCode = null,
+    string? StateCode = null);

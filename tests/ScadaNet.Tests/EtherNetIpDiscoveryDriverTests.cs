@@ -47,6 +47,9 @@ public class EtherNetIpDiscoveryDriverTests
         Assert.Equal("Rockwell Automation", result.Identity.VendorName);
         Assert.Equal("1", result.Identity.VendorCode);
         Assert.Equal("CompactLogix", result.Identity.ProductName);
+        Assert.Equal("14", result.Identity.DeviceTypeCode);
+        Assert.Equal("0x0000", result.Identity.StatusCode);
+        Assert.Equal("1", result.Identity.StateCode);
         Assert.Contains("ExplicitMessaging", result.Capabilities);
         Assert.Contains(result.Probes, probe => probe.Succeeded);
 

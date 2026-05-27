@@ -99,7 +99,10 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
             ProductCode: identity.ProductCode.ToString(),
             Revision: $"{identity.RevisionMajor}.{identity.RevisionMinor}",
             SerialNumber: identity.SerialNumber.ToString("X8"),
-            VendorCode: identity.VendorId.ToString());
+            VendorCode: identity.VendorId.ToString(),
+            DeviceTypeCode: identity.DeviceType.ToString(),
+            StatusCode: $"0x{identity.Status:X4}",
+            StateCode: identity.State.ToString());
     }
 
     private static string GetVendorName(ushort vendorId)
