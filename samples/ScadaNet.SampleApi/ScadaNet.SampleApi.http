@@ -70,6 +70,19 @@ Accept: application/json
 
 ###
 
+POST {{ScadaNet.SampleApi_HostAddress}}/scadanet/discovery/detect
+Content-Type: application/json
+
+{
+  "address": "192.168.0.10",
+  "ports": [
+    44818
+  ],
+  "timeoutMilliseconds": 1000
+}
+
+###
+
 GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/discovery
 Accept: application/json
 

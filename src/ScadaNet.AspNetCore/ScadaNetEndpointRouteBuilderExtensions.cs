@@ -76,6 +76,26 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                 count)));
         });
 
+        group.MapPost("/discovery/detect", async (
+            ScadaNetDiscoveryRequest request,
+            IDiscoveryService discovery,
+            CancellationToken cancellationToken) =>
+        {
+            try
+            {
+                var result = await discovery.DetectAsync(
+                        request.ToProbeRequest(),
+                        cancellationToken)
+                    .ConfigureAwait(false);
+
+                return Results.Ok(result);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                return ScadaNetHttpErrors.ToResult(ex);
+            }
+        });
+
         group.MapGet("/devices/{name}/discovery", async (
             string name,
             IDeviceRegistry registry,
