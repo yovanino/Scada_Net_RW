@@ -1,3 +1,5 @@
+using ScadaNet.Model;
+
 namespace ScadaNet.Runtime;
 
 public sealed class DeviceDashboardService : IDeviceDashboardService
@@ -6,6 +8,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
     private readonly IDeviceHealthService _health;
     private readonly IDeviceConnectionPool _connections;
     private readonly IPollingGroupMonitor _pollingGroups;
+    private readonly ISignalSnapshotStore _snapshotStore;
     private readonly IDeviceSignalSnapshotReader _snapshots;
 
     public DeviceDashboardService(
@@ -13,12 +16,14 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         IDeviceHealthService health,
         IDeviceConnectionPool connections,
         IPollingGroupMonitor pollingGroups,
+        ISignalSnapshotStore snapshotStore,
         IDeviceSignalSnapshotReader snapshots)
     {
         _devices = devices;
         _health = health;
         _connections = connections;
         _pollingGroups = pollingGroups;
+        _snapshotStore = snapshotStore;
         _snapshots = snapshots;
     }
 
@@ -35,50 +40,55 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
 
     public IReadOnlyList<DeviceDashboardSummary> GetSummaries()
     {
-        return GetAll()
-            .Select(BuildSummary)
+        var connections = _connections.GetStatus();
+        var pollingGroups = _pollingGroups.GetAll();
+
+        return _devices.Devices
+            .OrderBy(device => device.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(device => TryBuildSummary(device, connections, pollingGroups, out var summary)
+                ? summary
+                : null)
+            .Where(summary => summary is not null)
+            .Select(summary => summary!)
             .ToArray();
     }
 
     public DeviceDashboardOverview GetOverview()
     {
-        var dashboards = GetAll();
-        var connections = dashboards
-            .Select(dashboard => dashboard.Connection)
-            .Where(connection => connection is not null)
-            .ToArray();
-        var pollingGroups = dashboards
-            .SelectMany(dashboard => dashboard.PollingGroups)
-            .ToArray();
-        var signals = dashboards
-            .SelectMany(dashboard => dashboard.Signals)
-            .ToArray();
-        var issues = dashboards
-            .SelectMany(GetIssues)
-            .ToArray();
+        var summaries = GetSummaries();
+        var devices = _devices.Devices.ToArray();
+        var deviceNames = new HashSet<string>(
+            devices.Select(device => device.Name),
+            StringComparer.OrdinalIgnoreCase);
+        var failedConnectionCount = _connections.GetStatus()
+            .Count(connection => deviceNames.Contains(connection.DeviceName) &&
+                connection.FailedRentCount > 0);
 
         return new DeviceDashboardOverview(
-            dashboards.Count,
-            dashboards.Count(dashboard => dashboard.Health.State == DeviceHealthState.Healthy),
-            dashboards.Count(dashboard => dashboard.Health.State == DeviceHealthState.Degraded),
-            dashboards.Count(dashboard => dashboard.Health.State == DeviceHealthState.Unknown),
-            connections.Count(connection => connection!.HasConnection),
-            connections.Count(connection => connection!.FailedRentCount > 0),
-            pollingGroups.Length,
-            pollingGroups.Count(group => group.IsStale),
-            signals.Length,
-            signals.Count(signal => signal.HasValue),
-            signals.Count(signal => signal.Writable),
-            signals.Count(signal => signal.IsArray),
-            issues.Length,
-            issues.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Warning),
-            issues.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Critical));
+            summaries.Count,
+            summaries.Count(summary => summary.HealthState == DeviceHealthState.Healthy),
+            summaries.Count(summary => summary.HealthState == DeviceHealthState.Degraded),
+            summaries.Count(summary => summary.HealthState == DeviceHealthState.Unknown),
+            summaries.Count(summary => summary.HasConnection),
+            failedConnectionCount,
+            summaries.Sum(summary => summary.PollingGroupCount),
+            summaries.Sum(summary => summary.StalePollingGroupCount),
+            summaries.Sum(summary => summary.SignalCount),
+            summaries.Sum(summary => summary.SignalWithValueCount),
+            devices.Sum(device => device.Signals.Count(signal => signal.Writable)),
+            devices.Sum(device => device.Signals.Count(signal => signal.IsArray)),
+            summaries.Sum(summary => summary.IssueCount),
+            summaries.Sum(summary => summary.WarningIssueCount),
+            summaries.Sum(summary => summary.CriticalIssueCount));
     }
 
     public IReadOnlyList<DeviceDashboardIssue> GetIssues()
     {
-        return GetAll()
-            .SelectMany(GetIssues)
+        var connections = _connections.GetStatus();
+        var pollingGroups = _pollingGroups.GetAll();
+
+        return _devices.Devices
+            .SelectMany(device => GetIssues(device, connections, pollingGroups))
             .OrderByDescending(issue => issue.Severity)
             .ThenBy(issue => issue.DeviceName, StringComparer.OrdinalIgnoreCase)
             .ThenBy(issue => issue.Source, StringComparer.OrdinalIgnoreCase)
@@ -90,13 +100,13 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         string deviceName,
         out IReadOnlyList<DeviceDashboardIssue> issues)
     {
-        if (!TryGet(deviceName, out var dashboard))
+        if (!_devices.TryGet(deviceName, out var device))
         {
             issues = [];
             return false;
         }
 
-        issues = GetIssues(dashboard)
+        issues = GetIssues(device, _connections.GetStatus(), _pollingGroups.GetAll())
             .OrderByDescending(issue => issue.Severity)
             .ThenBy(issue => issue.Source, StringComparer.OrdinalIgnoreCase)
             .ThenBy(issue => issue.Code, StringComparer.OrdinalIgnoreCase)
@@ -135,26 +145,108 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         return true;
     }
 
+    private bool TryBuildSummary(
+        DeviceDefinition device,
+        IReadOnlyList<DeviceConnectionPoolStatus> connections,
+        IReadOnlyList<PollingGroupSummary> pollingGroups,
+        out DeviceDashboardSummary summary)
+    {
+        if (!_health.TryGet(device.Name, out var health))
+        {
+            summary = default!;
+            return false;
+        }
+
+        var connection = connections.FirstOrDefault(status => string.Equals(
+            status.DeviceName,
+            device.Name,
+            StringComparison.OrdinalIgnoreCase));
+        var devicePollingGroups = pollingGroups
+            .Where(group => string.Equals(
+                group.DeviceName,
+                device.Name,
+                StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        var issues = BuildIssues(device.Name, health, connection, devicePollingGroups).ToArray();
+
+        summary = new DeviceDashboardSummary(
+            device.Name,
+            device.Driver,
+            device.Address,
+            health.State,
+            connection?.HasConnection ?? false,
+            connection?.IsInUse ?? false,
+            devicePollingGroups.Length,
+            devicePollingGroups.Count(group => group.IsStale),
+            device.Signals.Count,
+            device.Signals.Count(signal => _snapshotStore.TryGet(
+                new SignalRef(device.Name, signal.Address),
+                out _)),
+            issues.Length,
+            issues.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Warning),
+            issues.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Critical),
+            health.LastSnapshotTimestamp,
+            health.LastPollingTimestamp);
+        return true;
+    }
+
     private static IEnumerable<DeviceDashboardIssue> GetIssues(DeviceDashboard dashboard)
     {
-        if (dashboard.Health.State is DeviceHealthState.Degraded or DeviceHealthState.Unknown)
+        return BuildIssues(
+            dashboard.Device.Name,
+            dashboard.Health,
+            dashboard.Connection,
+            dashboard.PollingGroups);
+    }
+
+    private IEnumerable<DeviceDashboardIssue> GetIssues(
+        DeviceDefinition device,
+        IReadOnlyList<DeviceConnectionPoolStatus> connections,
+        IReadOnlyList<PollingGroupSummary> pollingGroups)
+    {
+        if (!_health.TryGet(device.Name, out var health))
+        {
+            return [];
+        }
+
+        var connection = connections.FirstOrDefault(status => string.Equals(
+                status.DeviceName,
+                device.Name,
+                StringComparison.OrdinalIgnoreCase));
+        var devicePollingGroups = pollingGroups
+            .Where(group => string.Equals(
+                group.DeviceName,
+                device.Name,
+                StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        return BuildIssues(device.Name, health, connection, devicePollingGroups);
+    }
+
+    private static IEnumerable<DeviceDashboardIssue> BuildIssues(
+        string deviceName,
+        DeviceHealthSummary health,
+        DeviceConnectionPoolStatus? connection,
+        IReadOnlyList<PollingGroupSummary> pollingGroups)
+    {
+        if (health.State is DeviceHealthState.Degraded or DeviceHealthState.Unknown)
         {
             yield return new DeviceDashboardIssue(
-                dashboard.Device.Name,
-                dashboard.Health.State == DeviceHealthState.Degraded
+                deviceName,
+                health.State == DeviceHealthState.Degraded
                     ? DeviceDashboardIssueSeverity.Critical
                     : DeviceDashboardIssueSeverity.Warning,
                 "health",
-                dashboard.Health.State == DeviceHealthState.Degraded
+                health.State == DeviceHealthState.Degraded
                     ? "device-health-degraded"
                     : "device-health-unknown",
-                GetHealthMessage(dashboard.Health));
+                GetHealthMessage(health));
         }
 
-        if (dashboard.Connection is { FailedRentCount: > 0 } connection)
+        if (connection is { FailedRentCount: > 0 })
         {
             yield return new DeviceDashboardIssue(
-                dashboard.Device.Name,
+                deviceName,
                 connection.HasConnection
                     ? DeviceDashboardIssueSeverity.Warning
                     : DeviceDashboardIssueSeverity.Critical,
@@ -165,12 +257,12 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
                     : connection.LastError);
         }
 
-        foreach (var group in dashboard.PollingGroups)
+        foreach (var group in pollingGroups)
         {
             if (group.IsStale)
             {
                 yield return new DeviceDashboardIssue(
-                    dashboard.Device.Name,
+                    deviceName,
                     DeviceDashboardIssueSeverity.Warning,
                     "polling",
                     "polling-group-stale",
@@ -179,7 +271,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             else if (group is { HasStatus: true, Healthy: false })
             {
                 yield return new DeviceDashboardIssue(
-                    dashboard.Device.Name,
+                    deviceName,
                     DeviceDashboardIssueSeverity.Critical,
                     "polling",
                     "polling-group-failed",
@@ -190,7 +282,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             else if (group.Enabled && !group.HasStatus)
             {
                 yield return new DeviceDashboardIssue(
-                    dashboard.Device.Name,
+                    deviceName,
                     DeviceDashboardIssueSeverity.Warning,
                     "polling",
                     "polling-group-no-status",
@@ -204,27 +296,5 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         return health.Messages.Count == 0
             ? $"Device health is {health.State}."
             : string.Join(" ", health.Messages);
-    }
-
-    private static DeviceDashboardSummary BuildSummary(DeviceDashboard dashboard)
-    {
-        var issues = GetIssues(dashboard).ToArray();
-
-        return new DeviceDashboardSummary(
-            dashboard.Device.Name,
-            dashboard.Device.Driver,
-            dashboard.Device.Address,
-            dashboard.Health.State,
-            dashboard.Connection?.HasConnection ?? false,
-            dashboard.Connection?.IsInUse ?? false,
-            dashboard.PollingGroups.Count,
-            dashboard.PollingGroups.Count(group => group.IsStale),
-            dashboard.Signals.Count,
-            dashboard.Signals.Count(signal => signal.HasValue),
-            issues.Length,
-            issues.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Warning),
-            issues.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Critical),
-            dashboard.Health.LastSnapshotTimestamp,
-            dashboard.Health.LastPollingTimestamp);
     }
 }

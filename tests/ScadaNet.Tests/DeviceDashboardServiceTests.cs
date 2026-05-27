@@ -38,6 +38,7 @@ public class DeviceDashboardServiceTests
             new DeviceHealthService(registry, snapshots, statuses),
             connections,
             new PollingGroupMonitor(new PollingGroupRegistry([group]), statuses),
+            snapshots,
             new DeviceSignalSnapshotReader(registry, snapshots));
 
         var found = service.TryGet("LINE1-PLC", out var dashboard);
@@ -64,6 +65,7 @@ public class DeviceDashboardServiceTests
             new DeviceHealthService(registry, snapshots, statuses),
             connections,
             new PollingGroupMonitor(new PollingGroupRegistry([]), statuses),
+            snapshots,
             new DeviceSignalSnapshotReader(registry, snapshots));
 
         var dashboards = service.GetAll();
@@ -110,6 +112,7 @@ public class DeviceDashboardServiceTests
             new DeviceHealthService(registry, snapshots, statuses),
             connections,
             new PollingGroupMonitor(new PollingGroupRegistry([group]), statuses),
+            snapshots,
             new DeviceSignalSnapshotReader(registry, snapshots));
 
         var summaries = service.GetSummaries();
@@ -130,6 +133,39 @@ public class DeviceDashboardServiceTests
         Assert.Equal(0, line2Summary.SignalWithValueCount);
         Assert.Equal(1, line2Summary.IssueCount);
         Assert.Equal(1, line2Summary.WarningIssueCount);
+    }
+
+    [Fact]
+    public void GetSummaries_and_overview_do_not_build_detailed_signal_snapshots()
+    {
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        device.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "counter",
+            Address = "Counter"
+        });
+        var registry = new DeviceRegistry([device]);
+        var snapshots = new SignalSnapshotStore();
+        snapshots.Update(new SignalValue(
+            new SignalRef("line1-plc", "Counter"),
+            123,
+            SignalQuality.Good,
+            DateTimeOffset.UtcNow));
+        var statuses = new PollingStatusStore();
+        using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([]), statuses),
+            snapshots,
+            new ThrowingSignalSnapshotReader());
+
+        var summaries = service.GetSummaries();
+        var overview = service.GetOverview();
+
+        Assert.Single(summaries);
+        Assert.Equal(1, overview.SignalWithValueCount);
     }
 
     [Fact]
@@ -174,6 +210,7 @@ public class DeviceDashboardServiceTests
             new DeviceHealthService(registry, snapshots, statuses),
             connections,
             new PollingGroupMonitor(new PollingGroupRegistry([group]), statuses),
+            snapshots,
             new DeviceSignalSnapshotReader(registry, snapshots));
 
         var overview = service.GetOverview();
@@ -224,6 +261,7 @@ public class DeviceDashboardServiceTests
             new DeviceHealthService(registry, snapshots, statuses),
             connections,
             new PollingGroupMonitor(new PollingGroupRegistry([group]), statuses),
+            snapshots,
             new DeviceSignalSnapshotReader(registry, snapshots));
 
         var issues = service.GetIssues();
@@ -273,6 +311,7 @@ public class DeviceDashboardServiceTests
             new DeviceHealthService(registry, snapshots, statuses),
             connections,
             new PollingGroupMonitor(new PollingGroupRegistry([group1, group2]), statuses),
+            snapshots,
             new DeviceSignalSnapshotReader(registry, snapshots));
 
         var found = service.TryGetIssues("LINE1-PLC", out var issues);
@@ -295,6 +334,7 @@ public class DeviceDashboardServiceTests
             new DeviceHealthService(registry, snapshots, statuses),
             connections,
             new PollingGroupMonitor(new PollingGroupRegistry([]), statuses),
+            snapshots,
             new DeviceSignalSnapshotReader(registry, snapshots));
 
         var found = service.TryGet("missing", out _);
@@ -314,6 +354,7 @@ public class DeviceDashboardServiceTests
             new DeviceHealthService(registry, snapshots, statuses),
             connections,
             new PollingGroupMonitor(new PollingGroupRegistry([]), statuses),
+            snapshots,
             new DeviceSignalSnapshotReader(registry, snapshots));
 
         var found = service.TryGetIssues("missing", out var issues);
@@ -339,6 +380,24 @@ public class DeviceDashboardServiceTests
             CancellationToken cancellationToken = default)
         {
             throw new InvalidOperationException("Connection refused.");
+        }
+    }
+
+    private sealed class ThrowingSignalSnapshotReader : IDeviceSignalSnapshotReader
+    {
+        public bool TryGetDeviceSnapshots(
+            string deviceName,
+            out IReadOnlyList<DeviceSignalSnapshot> snapshots)
+        {
+            throw new InvalidOperationException("Detailed snapshots should not be built.");
+        }
+
+        public bool TryGet(
+            string deviceName,
+            string signalName,
+            out DeviceSignalSnapshot snapshot)
+        {
+            throw new InvalidOperationException("Detailed snapshots should not be built.");
         }
     }
 
