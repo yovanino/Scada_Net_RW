@@ -33,5 +33,7 @@ public interface IDeviceDashboardService
         DeviceDashboardIssueFilter? filter,
         out IReadOnlyList<DeviceDashboardIssueSummary> summaries);
 
+    bool TryGetRuntimeStatus(string deviceName, out DeviceRuntimeStatus status);
+
     bool TryGet(string deviceName, out DeviceDashboard dashboard);
 }

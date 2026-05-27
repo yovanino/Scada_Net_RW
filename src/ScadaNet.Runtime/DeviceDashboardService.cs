@@ -206,6 +206,40 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         return true;
     }
 
+    public bool TryGetRuntimeStatus(
+        string deviceName,
+        out DeviceRuntimeStatus status)
+    {
+        if (!_devices.TryGet(deviceName, out var device))
+        {
+            status = default!;
+            return false;
+        }
+
+        var connection = TryGetConnectionStatus(device.Name);
+        var pollingGroups = _pollingGroups.GetForDevice(device.Name);
+
+        if (!TryBuildSummary(device, connection, pollingGroups, out var summary))
+        {
+            status = default!;
+            return false;
+        }
+
+        var issues = BuildIssues(
+                device.Name,
+                _health.TryGet(device.Name, out var health) ? health : null,
+                connection,
+                pollingGroups)
+            .ToArray();
+
+        status = new DeviceRuntimeStatus(
+            summary,
+            connection,
+            pollingGroups,
+            BuildIssueSummaries(issues));
+        return true;
+    }
+
     public bool TryGet(string deviceName, out DeviceDashboard dashboard)
     {
         if (!_devices.TryGet(deviceName, out var device) ||

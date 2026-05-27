@@ -239,6 +239,55 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public async Task TryGetRuntimeStatus_returns_lightweight_device_runtime_state()
+    {
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        device.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "counter",
+            Address = "Counter"
+        });
+        var registry = new DeviceRegistry([device]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        var group = new SignalPollingGroupDefinition
+        {
+            Name = "line1-fast",
+            DeviceName = "line1-plc"
+        };
+        statuses.MarkFailure(
+            group,
+            TimeSpan.FromMilliseconds(25),
+            new InvalidOperationException("PLC read timeout."));
+        await using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        await using (await connections.RentAsync("line1-plc"))
+        {
+        }
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([group]), statuses),
+            snapshots,
+            new ThrowingSignalSnapshotReader());
+
+        var found = service.TryGetRuntimeStatus("LINE1-PLC", out var status);
+
+        Assert.True(found);
+        Assert.Equal("line1-plc", status.Summary.DeviceName);
+        Assert.True(status.Summary.HasConnection);
+        Assert.NotNull(status.Connection);
+        Assert.True(status.Connection.HasConnection);
+        Assert.Single(status.PollingGroups);
+        Assert.Contains(status.IssueSummaries, summary =>
+            summary.Source == DeviceDashboardIssueSources.Health &&
+            summary.CriticalIssueCount == 1);
+        Assert.Contains(status.IssueSummaries, summary =>
+            summary.Source == DeviceDashboardIssueSources.Polling &&
+            summary.CriticalIssueCount == 1);
+    }
+
+    [Fact]
     public void GetAttentionSummaries_returns_only_devices_with_issues_first()
     {
         var line1 = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
@@ -787,6 +836,26 @@ public class DeviceDashboardServiceTests
 
         Assert.False(found);
         Assert.Empty(summaries);
+    }
+
+    [Fact]
+    public void TryGetRuntimeStatus_returns_false_for_unknown_device()
+    {
+        var registry = new DeviceRegistry([]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([]), statuses),
+            snapshots,
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var found = service.TryGetRuntimeStatus("missing", out _);
+
+        Assert.False(found);
     }
 
     [Fact]
