@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using ScadaNet.AspNetCore;
 using ScadaNet.EtherNetIp;
 using ScadaNet.Logix;
+using ScadaNet.Model;
 using ScadaNet.Protocols;
 using ScadaNet.Runtime;
 
@@ -117,6 +118,7 @@ public class AspNetCoreRegistrationTests
 
         configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
+            ["ScadaNet:WriteAuditMaxRecords"] = "250",
             ["ScadaNet:Devices:0:Name"] = "line1-plc",
             ["ScadaNet:Devices:0:Driver"] = "ethernetip",
             ["ScadaNet:Devices:0:Address"] = "192.168.0.10",
@@ -174,6 +176,7 @@ public class AspNetCoreRegistrationTests
         Assert.False(signal.Writable);
 
         var options = provider.GetRequiredService<ScadaNetOptions>();
+        Assert.Equal(250, options.WriteAuditMaxRecords);
         var group = Assert.Single(options.PollingGroups);
         Assert.Equal("line1-fast", group.Name);
         Assert.Equal("line1-plc", group.DeviceName);
@@ -184,6 +187,20 @@ public class AspNetCoreRegistrationTests
         var pollingGroups = provider.GetRequiredService<IPollingGroupRegistry>();
         Assert.True(pollingGroups.TryGet("LINE1-FAST", out var registeredGroup));
         Assert.Equal("line1-plc", registeredGroup.DeviceName);
+
+        var writeAudit = provider.GetRequiredService<IWriteAuditStore>();
+        for (var index = 0; index < 300; index++)
+        {
+            writeAudit.Add(new WriteAuditRecord(
+                0,
+                DateTimeOffset.UtcNow,
+                new SignalRef("line1-plc", $"Command{index}"),
+                index,
+                Succeeded: true,
+                Error: null));
+        }
+
+        Assert.Equal(250, writeAudit.GetRecent(count: 300).Count);
     }
 
     [Fact]

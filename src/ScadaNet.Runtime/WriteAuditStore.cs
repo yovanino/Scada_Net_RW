@@ -4,11 +4,24 @@ namespace ScadaNet.Runtime;
 
 public sealed class WriteAuditStore : IWriteAuditStore
 {
-    private const int MaxRecords = 1000;
+    public const int DefaultMaxRecords = 1000;
 
     private readonly object _sync = new();
     private readonly List<WriteAuditRecord> _records = [];
+    private readonly int _maxRecords;
     private long _sequence;
+
+    public WriteAuditStore()
+        : this(DefaultMaxRecords)
+    {
+    }
+
+    public WriteAuditStore(int maxRecords)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(maxRecords, 1);
+
+        _maxRecords = maxRecords;
+    }
 
     public void Add(WriteAuditRecord record)
     {
@@ -20,9 +33,9 @@ public sealed class WriteAuditStore : IWriteAuditStore
 
             _records.Add(record with { Sequence = sequence });
 
-            if (_records.Count > MaxRecords)
+            if (_records.Count > _maxRecords)
             {
-                _records.RemoveRange(0, _records.Count - MaxRecords);
+                _records.RemoveRange(0, _records.Count - _maxRecords);
             }
         }
     }
@@ -78,9 +91,9 @@ public sealed class WriteAuditStore : IWriteAuditStore
         }
     }
 
-    private static int NormalizeCount(int count)
+    private int NormalizeCount(int count)
     {
-        return Math.Clamp(count, 1, MaxRecords);
+        return Math.Clamp(count, 1, _maxRecords);
     }
 
     private static WriteAuditSummary BuildSummary(

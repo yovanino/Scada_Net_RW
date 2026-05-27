@@ -130,4 +130,30 @@ public class WriteAuditStoreTests
         Assert.Equal(timestamp, summary.LastFailedWriteTimestamp);
         Assert.Equal("PLC rejected write.", summary.LastError);
     }
+
+    [Fact]
+    public void Add_trims_to_configured_max_records()
+    {
+        var store = new WriteAuditStore(maxRecords: 3);
+        var timestamp = new DateTimeOffset(2026, 5, 26, 10, 0, 0, TimeSpan.Zero);
+
+        for (var index = 0; index < 5; index++)
+        {
+            store.Add(new WriteAuditRecord(
+                0,
+                timestamp.AddSeconds(index),
+                new SignalRef("line1-plc", $"Command{index}"),
+                index,
+                Succeeded: true,
+                Error: null));
+        }
+
+        var records = store.GetRecent(count: 10);
+        var summary = store.GetSummary();
+
+        Assert.Equal(3, records.Count);
+        Assert.Equal(["Command4", "Command3", "Command2"], records.Select(record => record.Signal.Address));
+        Assert.Equal(3, summary.WriteCount);
+        Assert.Equal(timestamp.AddSeconds(4), summary.LastWriteTimestamp);
+    }
 }

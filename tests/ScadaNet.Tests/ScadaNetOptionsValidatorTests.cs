@@ -223,4 +223,18 @@ public class ScadaNetOptionsValidatorTests
 
         Assert.Contains(error.Errors, item => item.Contains("raw scaling range cannot be zero"));
     }
+
+    [Fact]
+    public void Validate_rejects_non_positive_write_audit_max_records()
+    {
+        var options = new ScadaNetOptions
+        {
+            WriteAuditMaxRecords = 0
+        };
+
+        var error = Assert.Throws<ScadaNetOptionsValidationException>(() =>
+            ScadaNetOptionsValidator.Validate(options));
+
+        Assert.Contains(error.Errors, item => item.Contains("Write audit max records must be greater than zero"));
+    }
 }

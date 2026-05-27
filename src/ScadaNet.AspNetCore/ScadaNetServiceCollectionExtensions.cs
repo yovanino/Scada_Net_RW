@@ -45,7 +45,7 @@ public static class ScadaNetServiceCollectionExtensions
         services.AddSingleton<ISignalSnapshotStore, SignalSnapshotStore>();
         services.AddSingleton<IPollingStatusStore, PollingStatusStore>();
         services.AddSingleton<IPollingGroupMonitor, PollingGroupMonitor>();
-        services.AddSingleton<IWriteAuditStore, WriteAuditStore>();
+        services.AddSingleton<IWriteAuditStore>(_ => new WriteAuditStore(options.WriteAuditMaxRecords));
         services.AddSingleton<IDeviceHealthService, DeviceHealthService>();
         services.AddSingleton<IDeviceDashboardService, DeviceDashboardService>();
         services.AddSingleton<IDiscoveryService, DiscoveryService>();

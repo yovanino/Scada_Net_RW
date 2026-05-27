@@ -21,6 +21,11 @@ public static class ScadaNetOptionsValidator
         var devicesByName = new Dictionary<string, Runtime.DeviceDefinition>(StringComparer.OrdinalIgnoreCase);
         var pollingGroupNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
+        if (options.WriteAuditMaxRecords <= 0)
+        {
+            errors.Add("Write audit max records must be greater than zero.");
+        }
+
         foreach (var device in options.Devices)
         {
             if (string.IsNullOrWhiteSpace(device.Name))
