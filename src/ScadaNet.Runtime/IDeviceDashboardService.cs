@@ -4,6 +4,8 @@ public interface IDeviceDashboardService
 {
     IReadOnlyList<DeviceDashboard> GetAll();
 
+    IReadOnlyList<DeviceDashboardSummary> GetSummaries();
+
     DeviceDashboardOverview GetOverview();
 
     IReadOnlyList<DeviceDashboardIssue> GetIssues();

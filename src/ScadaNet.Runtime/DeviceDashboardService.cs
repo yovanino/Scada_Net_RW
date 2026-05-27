@@ -33,6 +33,13 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             .ToArray()!;
     }
 
+    public IReadOnlyList<DeviceDashboardSummary> GetSummaries()
+    {
+        return GetAll()
+            .Select(BuildSummary)
+            .ToArray();
+    }
+
     public DeviceDashboardOverview GetOverview()
     {
         var dashboards = GetAll();
@@ -197,5 +204,27 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         return health.Messages.Count == 0
             ? $"Device health is {health.State}."
             : string.Join(" ", health.Messages);
+    }
+
+    private static DeviceDashboardSummary BuildSummary(DeviceDashboard dashboard)
+    {
+        var issues = GetIssues(dashboard).ToArray();
+
+        return new DeviceDashboardSummary(
+            dashboard.Device.Name,
+            dashboard.Device.Driver,
+            dashboard.Device.Address,
+            dashboard.Health.State,
+            dashboard.Connection?.HasConnection ?? false,
+            dashboard.Connection?.IsInUse ?? false,
+            dashboard.PollingGroups.Count,
+            dashboard.PollingGroups.Count(group => group.IsStale),
+            dashboard.Signals.Count,
+            dashboard.Signals.Count(signal => signal.HasValue),
+            issues.Length,
+            issues.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Warning),
+            issues.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Critical),
+            dashboard.Health.LastSnapshotTimestamp,
+            dashboard.Health.LastPollingTimestamp);
     }
 }

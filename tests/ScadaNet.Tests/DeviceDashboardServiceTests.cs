@@ -72,6 +72,67 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public async Task GetSummaries_returns_lightweight_device_status()
+    {
+        var line1 = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        line1.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "counter",
+            Address = "Counter"
+        });
+        var line2 = new DeviceDefinition("line2-plc", "fake", "127.0.0.2");
+        line2.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "speed",
+            Address = "Speed"
+        });
+        var registry = new DeviceRegistry([line2, line1]);
+        var snapshots = new SignalSnapshotStore();
+        snapshots.Update(new SignalValue(
+            new SignalRef("line1-plc", "Counter"),
+            123,
+            SignalQuality.Good,
+            DateTimeOffset.UtcNow));
+        var statuses = new PollingStatusStore();
+        var group = new SignalPollingGroupDefinition
+        {
+            Name = "line1-fast",
+            DeviceName = "line1-plc"
+        };
+        group.SignalNames.Add("counter");
+        statuses.MarkSuccess(group, TimeSpan.FromMilliseconds(10), signalCount: 1);
+        await using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        await using (await connections.RentAsync("line1-plc"))
+        {
+        }
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([group]), statuses),
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var summaries = service.GetSummaries();
+
+        Assert.Equal(["line1-plc", "line2-plc"], summaries.Select(summary => summary.DeviceName));
+        var line1Summary = summaries[0];
+        Assert.Equal(DeviceHealthState.Healthy, line1Summary.HealthState);
+        Assert.True(line1Summary.HasConnection);
+        Assert.Equal(1, line1Summary.PollingGroupCount);
+        Assert.Equal(1, line1Summary.SignalCount);
+        Assert.Equal(1, line1Summary.SignalWithValueCount);
+        Assert.Equal(0, line1Summary.IssueCount);
+
+        var line2Summary = summaries[1];
+        Assert.Equal(DeviceHealthState.Unknown, line2Summary.HealthState);
+        Assert.False(line2Summary.HasConnection);
+        Assert.Equal(1, line2Summary.SignalCount);
+        Assert.Equal(0, line2Summary.SignalWithValueCount);
+        Assert.Equal(1, line2Summary.IssueCount);
+        Assert.Equal(1, line2Summary.WarningIssueCount);
+    }
+
+    [Fact]
     public async Task GetOverview_counts_devices_connections_polling_and_signals()
     {
         var line1 = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
