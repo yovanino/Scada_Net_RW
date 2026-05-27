@@ -163,8 +163,11 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         var devices = _devices.Devices.ToArray();
         var connections = _connections.GetStatus();
         var pollingGroups = _pollingGroups.GetAll();
-        var summaries = BuildSummaries(devices, connections, pollingGroups);
-        var issues = BuildAllIssues(devices, connections, pollingGroups);
+        var deviceStatuses = BuildRuntimeDeviceStatuses(devices, connections, pollingGroups);
+        var summaries = deviceStatuses
+            .Select(status => status.Summary)
+            .ToArray();
+        var issues = OrderIssues(deviceStatuses.SelectMany(status => status.Issues));
 
         return new ScadaNetRuntimeStatus(
             BuildOverview(summaries, devices),
@@ -404,18 +407,68 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             .ToArray();
     }
 
-    private IReadOnlyList<DeviceDashboardIssue> BuildAllIssues(
+    private IReadOnlyList<RuntimeDeviceStatusParts> BuildRuntimeDeviceStatuses(
         IReadOnlyList<DeviceDefinition> devices,
         IReadOnlyList<DeviceConnectionPoolStatus> connections,
         IReadOnlyList<PollingGroupSummary> pollingGroups)
     {
         return devices
-            .SelectMany(device => GetIssues(device, connections, pollingGroups))
-            .OrderByDescending(issue => issue.Severity)
-            .ThenBy(issue => issue.DeviceName, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(issue => issue.Source, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(issue => issue.Code, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(device => device.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(device => TryBuildRuntimeDeviceStatus(
+                device,
+                connections,
+                pollingGroups,
+                out var status)
+                    ? status
+                    : null)
+            .Where(status => status is not null)
+            .Select(status => status!)
             .ToArray();
+    }
+
+    private bool TryBuildRuntimeDeviceStatus(
+        DeviceDefinition device,
+        IReadOnlyList<DeviceConnectionPoolStatus> connections,
+        IReadOnlyList<PollingGroupSummary> pollingGroups,
+        out RuntimeDeviceStatusParts status)
+    {
+        if (!_health.TryGet(device.Name, out var health))
+        {
+            status = default!;
+            return false;
+        }
+
+        var connection = connections.FirstOrDefault(item => string.Equals(
+            item.DeviceName,
+            device.Name,
+            StringComparison.OrdinalIgnoreCase));
+        var devicePollingGroups = pollingGroups
+            .Where(group => string.Equals(
+                group.DeviceName,
+                device.Name,
+                StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        var writeAudit = _writeAudit.GetDeviceSummary(device.Name);
+        var issues = BuildIssues(
+                device.Name,
+                health,
+                connection,
+                devicePollingGroups,
+                writeAudit)
+            .ToArray();
+
+        status = new RuntimeDeviceStatusParts(
+            BuildSummary(device, health, connection, devicePollingGroups, issues),
+            issues);
+        return true;
+    }
+
+    private IReadOnlyList<DeviceDashboardIssue> BuildAllIssues(
+        IReadOnlyList<DeviceDefinition> devices,
+        IReadOnlyList<DeviceConnectionPoolStatus> connections,
+        IReadOnlyList<PollingGroupSummary> pollingGroups)
+    {
+        return OrderIssues(devices.SelectMany(device => GetIssues(device, connections, pollingGroups)));
     }
 
     private static IEnumerable<DeviceDashboardIssue> GetIssues(DeviceDashboard dashboard)
@@ -603,6 +656,17 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             .ToArray();
     }
 
+    private static IReadOnlyList<DeviceDashboardIssue> OrderIssues(
+        IEnumerable<DeviceDashboardIssue> issues)
+    {
+        return issues
+            .OrderByDescending(issue => issue.Severity)
+            .ThenBy(issue => issue.DeviceName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(issue => issue.Source, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(issue => issue.Code, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
     private static int CountSource(
         IReadOnlyList<DeviceDashboardIssue> issues,
         string source)
@@ -612,4 +676,8 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             source,
             StringComparison.OrdinalIgnoreCase));
     }
+
+    private sealed record RuntimeDeviceStatusParts(
+        DeviceDashboardSummary Summary,
+        IReadOnlyList<DeviceDashboardIssue> Issues);
 }

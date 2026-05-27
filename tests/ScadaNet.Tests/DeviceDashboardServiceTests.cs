@@ -576,19 +576,23 @@ public class DeviceDashboardServiceTests
         var statuses = new PollingStatusStore();
         var connections = new CountingConnectionPool();
         var pollingGroups = new CountingPollingGroupMonitor();
+        var writeAudit = new CountingWriteAuditStore();
         var service = new DeviceDashboardService(
             registry,
             new DeviceHealthService(registry, snapshots, statuses),
             connections,
             pollingGroups,
             snapshots,
-            new DeviceSignalSnapshotReader(registry, snapshots));
+            new DeviceSignalSnapshotReader(registry, snapshots),
+            writeAudit);
 
         var status = service.GetRuntimeStatus();
 
         Assert.Equal(1, status.Overview.DeviceCount);
         Assert.Equal(1, connections.GetStatusCount);
         Assert.Equal(1, pollingGroups.GetAllCount);
+        Assert.Equal(1, writeAudit.GetDeviceSummaryCount);
+        Assert.Equal(1, writeAudit.GetSummaryCount);
     }
 
     [Fact]
@@ -1279,6 +1283,7 @@ public class DeviceDashboardServiceTests
     private sealed class CountingWriteAuditStore : IWriteAuditStore
     {
         public int GetDeviceSummaryCount { get; private set; }
+        public int GetSummaryCount { get; private set; }
 
         public void Add(WriteAuditRecord record)
         {
@@ -1299,7 +1304,15 @@ public class DeviceDashboardServiceTests
 
         public WriteAuditSummary GetSummary()
         {
-            throw new NotSupportedException();
+            GetSummaryCount++;
+            return new WriteAuditSummary(
+                DeviceName: null,
+                WriteCount: 0,
+                SucceededWriteCount: 0,
+                FailedWriteCount: 0,
+                LastWriteTimestamp: null,
+                LastFailedWriteTimestamp: null,
+                LastError: null);
         }
 
         public WriteAuditSummary GetDeviceSummary(string deviceName)
