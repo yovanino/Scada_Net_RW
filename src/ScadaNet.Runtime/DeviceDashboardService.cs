@@ -126,7 +126,10 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             devices.Sum(device => device.Signals.Count(signal => signal.IsArray)),
             summaries.Sum(summary => summary.IssueCount),
             summaries.Sum(summary => summary.WarningIssueCount),
-            summaries.Sum(summary => summary.CriticalIssueCount));
+            summaries.Sum(summary => summary.CriticalIssueCount),
+            summaries.Sum(summary => summary.HealthIssueCount),
+            summaries.Sum(summary => summary.ConnectionIssueCount),
+            summaries.Sum(summary => summary.PollingIssueCount));
     }
 
     public IReadOnlyList<DeviceDashboardIssue> GetIssues()
@@ -249,6 +252,9 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             issues.Length,
             issues.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Warning),
             issues.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Critical),
+            CountSource(issues, DeviceDashboardIssueSources.Health),
+            CountSource(issues, DeviceDashboardIssueSources.Connection),
+            CountSource(issues, DeviceDashboardIssueSources.Polling),
             health.LastSnapshotTimestamp,
             health.LastPollingTimestamp);
         return true;
@@ -300,7 +306,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
                 health.State == DeviceHealthState.Degraded
                     ? DeviceDashboardIssueSeverity.Critical
                     : DeviceDashboardIssueSeverity.Warning,
-                "health",
+                DeviceDashboardIssueSources.Health,
                 health.State == DeviceHealthState.Degraded
                     ? "device-health-degraded"
                     : "device-health-unknown",
@@ -314,7 +320,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
                 connection.HasConnection
                     ? DeviceDashboardIssueSeverity.Warning
                     : DeviceDashboardIssueSeverity.Critical,
-                "connection",
+                DeviceDashboardIssueSources.Connection,
                 "connection-rent-failed",
                 string.IsNullOrWhiteSpace(connection.LastError)
                     ? "Connection pool recorded one or more rent failures."
@@ -328,7 +334,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
                 yield return new DeviceDashboardIssue(
                     deviceName,
                     DeviceDashboardIssueSeverity.Warning,
-                    "polling",
+                    DeviceDashboardIssueSources.Polling,
                     "polling-group-stale",
                     $"Polling group '{group.GroupName}' has not run within {group.StaleAfter}.");
             }
@@ -337,7 +343,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
                 yield return new DeviceDashboardIssue(
                     deviceName,
                     DeviceDashboardIssueSeverity.Critical,
-                    "polling",
+                    DeviceDashboardIssueSources.Polling,
                     "polling-group-failed",
                     string.IsNullOrWhiteSpace(group.Error)
                         ? $"Polling group '{group.GroupName}' failed."
@@ -348,7 +354,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
                 yield return new DeviceDashboardIssue(
                     deviceName,
                     DeviceDashboardIssueSeverity.Warning,
-                    "polling",
+                    DeviceDashboardIssueSources.Polling,
                     "polling-group-no-status",
                     $"Polling group '{group.GroupName}' has no recorded status.");
             }
@@ -392,5 +398,15 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         }
 
         return filtered.ToArray();
+    }
+
+    private static int CountSource(
+        IReadOnlyList<DeviceDashboardIssue> issues,
+        string source)
+    {
+        return issues.Count(issue => string.Equals(
+            issue.Source,
+            source,
+            StringComparison.OrdinalIgnoreCase));
     }
 }

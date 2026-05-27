@@ -125,6 +125,9 @@ public class DeviceDashboardServiceTests
         Assert.Equal(1, line1Summary.SignalCount);
         Assert.Equal(1, line1Summary.SignalWithValueCount);
         Assert.Equal(0, line1Summary.IssueCount);
+        Assert.Equal(0, line1Summary.HealthIssueCount);
+        Assert.Equal(0, line1Summary.ConnectionIssueCount);
+        Assert.Equal(0, line1Summary.PollingIssueCount);
 
         var line2Summary = summaries[1];
         Assert.Equal(DeviceHealthState.Unknown, line2Summary.HealthState);
@@ -133,6 +136,9 @@ public class DeviceDashboardServiceTests
         Assert.Equal(0, line2Summary.SignalWithValueCount);
         Assert.Equal(1, line2Summary.IssueCount);
         Assert.Equal(1, line2Summary.WarningIssueCount);
+        Assert.Equal(1, line2Summary.HealthIssueCount);
+        Assert.Equal(0, line2Summary.ConnectionIssueCount);
+        Assert.Equal(0, line2Summary.PollingIssueCount);
     }
 
     [Fact]
@@ -397,6 +403,9 @@ public class DeviceDashboardServiceTests
         Assert.Equal(1, overview.IssueCount);
         Assert.Equal(1, overview.WarningIssueCount);
         Assert.Equal(0, overview.CriticalIssueCount);
+        Assert.Equal(1, overview.HealthIssueCount);
+        Assert.Equal(0, overview.ConnectionIssueCount);
+        Assert.Equal(0, overview.PollingIssueCount);
     }
 
     [Fact]
@@ -438,11 +447,11 @@ public class DeviceDashboardServiceTests
             issue.Severity == DeviceDashboardIssueSeverity.Critical);
         Assert.Contains(issues, issue =>
             issue.Code == "connection-rent-failed" &&
-            issue.Source == "connection" &&
+            issue.Source == DeviceDashboardIssueSources.Connection &&
             issue.Severity == DeviceDashboardIssueSeverity.Critical);
         Assert.Contains(issues, issue =>
             issue.Code == "polling-group-failed" &&
-            issue.Source == "polling" &&
+            issue.Source == DeviceDashboardIssueSources.Polling &&
             issue.Message == "PLC read timeout.");
     }
 
@@ -483,12 +492,12 @@ public class DeviceDashboardServiceTests
 
         var issues = service.GetIssues(new DeviceDashboardIssueFilter(
             MinimumSeverity: DeviceDashboardIssueSeverity.Critical,
-            Source: "polling",
+            Source: DeviceDashboardIssueSources.Polling,
             Count: 1));
 
         var issue = Assert.Single(issues);
         Assert.Equal("line1-plc", issue.DeviceName);
-        Assert.Equal("polling", issue.Source);
+        Assert.Equal(DeviceDashboardIssueSources.Polling, issue.Source);
         Assert.Equal(DeviceDashboardIssueSeverity.Critical, issue.Severity);
     }
 
@@ -562,12 +571,12 @@ public class DeviceDashboardServiceTests
 
         var found = service.TryGetIssues(
             "line1-plc",
-            new DeviceDashboardIssueFilter(Source: "health"),
+            new DeviceDashboardIssueFilter(Source: DeviceDashboardIssueSources.Health),
             out var issues);
 
         Assert.True(found);
         Assert.Single(issues);
-        Assert.All(issues, issue => Assert.Equal("health", issue.Source));
+        Assert.All(issues, issue => Assert.Equal(DeviceDashboardIssueSources.Health, issue.Source));
     }
 
     [Fact]
