@@ -483,6 +483,30 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public void GetRuntimeStatus_reuses_summary_status_reads_for_overview_and_attention()
+    {
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        var registry = new DeviceRegistry([device]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        var connections = new CountingConnectionPool();
+        var pollingGroups = new CountingPollingGroupMonitor();
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            pollingGroups,
+            snapshots,
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var status = service.GetRuntimeStatus();
+
+        Assert.Equal(1, status.Overview.DeviceCount);
+        Assert.Equal(2, connections.GetStatusCount);
+        Assert.Equal(2, pollingGroups.GetAllCount);
+    }
+
+    [Fact]
     public void GetSummaries_and_overview_do_not_build_detailed_signal_snapshots()
     {
         var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
@@ -1098,6 +1122,66 @@ public class DeviceDashboardServiceTests
                     deviceName,
                     StringComparison.OrdinalIgnoreCase))
                 .ToArray();
+        }
+
+        public bool TryGet(string groupName, out PollingGroupSummary summary)
+        {
+            summary = default!;
+            return false;
+        }
+    }
+
+    private sealed class CountingConnectionPool : IDeviceConnectionPool
+    {
+        public int GetStatusCount { get; private set; }
+
+        public ValueTask<IDeviceConnectionLease> RentAsync(
+            string deviceName,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask<bool> CloseAsync(
+            string deviceName,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask<int> CloseAllAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public IReadOnlyList<DeviceConnectionPoolStatus> GetStatus()
+        {
+            GetStatusCount++;
+            return [];
+        }
+
+        public bool TryGetStatus(
+            string deviceName,
+            out DeviceConnectionPoolStatus status)
+        {
+            status = default!;
+            return false;
+        }
+    }
+
+    private sealed class CountingPollingGroupMonitor : IPollingGroupMonitor
+    {
+        public int GetAllCount { get; private set; }
+
+        public IReadOnlyList<PollingGroupSummary> GetAll()
+        {
+            GetAllCount++;
+            return [];
+        }
+
+        public IReadOnlyList<PollingGroupSummary> GetForDevice(string deviceName)
+        {
+            return [];
         }
 
         public bool TryGet(string groupName, out PollingGroupSummary summary)

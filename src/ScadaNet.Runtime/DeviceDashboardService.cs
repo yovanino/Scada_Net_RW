@@ -78,7 +78,15 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         int? count = null,
         DeviceDashboardIssueSeverity? minimumSeverity = null)
     {
-        var summaries = GetSummaries()
+        return BuildAttentionSummaries(GetSummaries(), count, minimumSeverity);
+    }
+
+    private static IReadOnlyList<DeviceDashboardSummary> BuildAttentionSummaries(
+        IReadOnlyList<DeviceDashboardSummary> summaries,
+        int? count = null,
+        DeviceDashboardIssueSeverity? minimumSeverity = null)
+    {
+        var attention = summaries
             .Where(summary => HasMinimumSeverity(summary, minimumSeverity))
             .OrderByDescending(summary => summary.CriticalIssueCount)
             .ThenByDescending(summary => summary.WarningIssueCount)
@@ -86,8 +94,8 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             .ToArray();
 
         return count.HasValue
-            ? summaries.Take(Math.Max(0, count.Value)).ToArray()
-            : summaries;
+            ? attention.Take(Math.Max(0, count.Value)).ToArray()
+            : attention;
     }
 
     private static bool HasMinimumSeverity(
@@ -123,22 +131,20 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
 
     public DeviceDashboardOverview GetOverview()
     {
-        var summaries = GetSummaries();
-        var devices = _devices.Devices.ToArray();
-        var deviceNames = new HashSet<string>(
-            devices.Select(device => device.Name),
-            StringComparer.OrdinalIgnoreCase);
-        var failedConnectionCount = _connections.GetStatus()
-            .Count(connection => deviceNames.Contains(connection.DeviceName) &&
-                connection.FailedRentCount > 0);
+        return BuildOverview(GetSummaries(), _devices.Devices.ToArray());
+    }
 
+    private static DeviceDashboardOverview BuildOverview(
+        IReadOnlyList<DeviceDashboardSummary> summaries,
+        IReadOnlyList<DeviceDefinition> devices)
+    {
         return new DeviceDashboardOverview(
             summaries.Count,
             summaries.Count(summary => summary.HealthState == DeviceHealthState.Healthy),
             summaries.Count(summary => summary.HealthState == DeviceHealthState.Degraded),
             summaries.Count(summary => summary.HealthState == DeviceHealthState.Unknown),
             summaries.Count(summary => summary.HasConnection),
-            failedConnectionCount,
+            summaries.Sum(summary => summary.ConnectionIssueCount),
             summaries.Sum(summary => summary.PollingGroupCount),
             summaries.Sum(summary => summary.StalePollingGroupCount),
             summaries.Sum(summary => summary.SignalCount),
@@ -158,9 +164,11 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         int? attentionCount = null,
         DeviceDashboardIssueSeverity? minimumSeverity = null)
     {
+        var summaries = GetSummaries();
+
         return new ScadaNetRuntimeStatus(
-            GetOverview(),
-            GetAttentionSummaries(attentionCount, minimumSeverity),
+            BuildOverview(summaries, _devices.Devices.ToArray()),
+            BuildAttentionSummaries(summaries, attentionCount, minimumSeverity),
             GetIssueSummaries(new DeviceDashboardIssueFilter(
                 MinimumSeverity: minimumSeverity)),
             _writeAudit.GetSummary(),
