@@ -10,6 +10,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
     private readonly IPollingGroupMonitor _pollingGroups;
     private readonly ISignalSnapshotStore _snapshotStore;
     private readonly IDeviceSignalSnapshotReader _snapshots;
+    private readonly IWriteAuditStore _writeAudit;
 
     public DeviceDashboardService(
         IDeviceRegistry devices,
@@ -18,6 +19,25 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         IPollingGroupMonitor pollingGroups,
         ISignalSnapshotStore snapshotStore,
         IDeviceSignalSnapshotReader snapshots)
+        : this(
+            devices,
+            health,
+            connections,
+            pollingGroups,
+            snapshotStore,
+            snapshots,
+            new WriteAuditStore())
+    {
+    }
+
+    public DeviceDashboardService(
+        IDeviceRegistry devices,
+        IDeviceHealthService health,
+        IDeviceConnectionPool connections,
+        IPollingGroupMonitor pollingGroups,
+        ISignalSnapshotStore snapshotStore,
+        IDeviceSignalSnapshotReader snapshots,
+        IWriteAuditStore writeAudit)
     {
         _devices = devices;
         _health = health;
@@ -25,6 +45,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         _pollingGroups = pollingGroups;
         _snapshotStore = snapshotStore;
         _snapshots = snapshots;
+        _writeAudit = writeAudit;
     }
 
     public IReadOnlyList<DeviceDashboard> GetAll()
@@ -236,7 +257,8 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             summary,
             connection,
             pollingGroups,
-            BuildIssueSummaries(issues));
+            BuildIssueSummaries(issues),
+            _writeAudit.GetDeviceSummary(device.Name));
         return true;
     }
 

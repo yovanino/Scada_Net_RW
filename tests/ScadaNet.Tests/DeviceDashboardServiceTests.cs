@@ -263,13 +263,22 @@ public class DeviceDashboardServiceTests
         await using (await connections.RentAsync("line1-plc"))
         {
         }
+        var writeAudit = new WriteAuditStore();
+        writeAudit.Add(new WriteAuditRecord(
+            0,
+            DateTimeOffset.UtcNow,
+            new SignalRef("line1-plc", "ResetCommand"),
+            true,
+            Succeeded: false,
+            Error: "PLC rejected write."));
         var service = new DeviceDashboardService(
             registry,
             new DeviceHealthService(registry, snapshots, statuses),
             connections,
             new PollingGroupMonitor(new PollingGroupRegistry([group]), statuses),
             snapshots,
-            new ThrowingSignalSnapshotReader());
+            new ThrowingSignalSnapshotReader(),
+            writeAudit);
 
         var found = service.TryGetRuntimeStatus("LINE1-PLC", out var status);
 
@@ -285,6 +294,10 @@ public class DeviceDashboardServiceTests
         Assert.Contains(status.IssueSummaries, summary =>
             summary.Source == DeviceDashboardIssueSources.Polling &&
             summary.CriticalIssueCount == 1);
+        Assert.Equal("line1-plc", status.WriteAudit.DeviceName);
+        Assert.Equal(1, status.WriteAudit.WriteCount);
+        Assert.Equal(1, status.WriteAudit.FailedWriteCount);
+        Assert.Equal("PLC rejected write.", status.WriteAudit.LastError);
     }
 
     [Fact]
