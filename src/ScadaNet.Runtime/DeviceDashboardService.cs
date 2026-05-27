@@ -412,12 +412,13 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         IReadOnlyList<DeviceConnectionPoolStatus> connections,
         IReadOnlyList<PollingGroupSummary> pollingGroups)
     {
+        var indexes = BuildRuntimeStatusIndexes(connections, pollingGroups);
+
         return devices
             .OrderBy(device => device.Name, StringComparer.OrdinalIgnoreCase)
             .Select(device => TryBuildRuntimeDeviceStatus(
                 device,
-                connections,
-                pollingGroups,
+                indexes,
                 out var status)
                     ? status
                     : null)
@@ -428,8 +429,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
 
     private bool TryBuildRuntimeDeviceStatus(
         DeviceDefinition device,
-        IReadOnlyList<DeviceConnectionPoolStatus> connections,
-        IReadOnlyList<PollingGroupSummary> pollingGroups,
+        RuntimeStatusIndexes indexes,
         out RuntimeDeviceStatusParts status)
     {
         if (!_health.TryGet(device.Name, out var health))
@@ -438,16 +438,10 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             return false;
         }
 
-        var connection = connections.FirstOrDefault(item => string.Equals(
-            item.DeviceName,
-            device.Name,
-            StringComparison.OrdinalIgnoreCase));
-        var devicePollingGroups = pollingGroups
-            .Where(group => string.Equals(
-                group.DeviceName,
-                device.Name,
-                StringComparison.OrdinalIgnoreCase))
-            .ToArray();
+        var connection = indexes.ConnectionsByDevice.TryGetValue(device.Name, out var statusMatch)
+            ? statusMatch
+            : null;
+        var devicePollingGroups = indexes.PollingGroupsByDevice[device.Name].ToArray();
         var writeAudit = _writeAudit.GetDeviceSummary(device.Name);
         var issues = BuildIssues(
                 device.Name,
@@ -461,6 +455,23 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             BuildSummary(device, health, connection, devicePollingGroups, issues),
             issues);
         return true;
+    }
+
+    private static RuntimeStatusIndexes BuildRuntimeStatusIndexes(
+        IReadOnlyList<DeviceConnectionPoolStatus> connections,
+        IReadOnlyList<PollingGroupSummary> pollingGroups)
+    {
+        var connectionsByDevice = connections
+            .GroupBy(status => status.DeviceName, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(
+                group => group.Key,
+                group => group.First(),
+                StringComparer.OrdinalIgnoreCase);
+        var pollingGroupsByDevice = pollingGroups.ToLookup(
+            group => group.DeviceName,
+            StringComparer.OrdinalIgnoreCase);
+
+        return new RuntimeStatusIndexes(connectionsByDevice, pollingGroupsByDevice);
     }
 
     private IReadOnlyList<DeviceDashboardIssue> BuildAllIssues(
@@ -680,4 +691,8 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
     private sealed record RuntimeDeviceStatusParts(
         DeviceDashboardSummary Summary,
         IReadOnlyList<DeviceDashboardIssue> Issues);
+
+    private sealed record RuntimeStatusIndexes(
+        IReadOnlyDictionary<string, DeviceConnectionPoolStatus> ConnectionsByDevice,
+        ILookup<string, PollingGroupSummary> PollingGroupsByDevice);
 }
