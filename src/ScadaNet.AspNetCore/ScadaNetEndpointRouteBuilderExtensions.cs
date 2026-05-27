@@ -353,10 +353,19 @@ public static class ScadaNetEndpointRouteBuilderExtensions
         group.MapPost("/devices/{name}/signals/read-named", async (
             string name,
             ScadaNetReadManyNamedRequest request,
+            IDeviceRegistry registry,
             IDeviceSignalResolver signals,
             IPlcRuntime runtime,
             CancellationToken cancellationToken) =>
         {
+            if (!registry.TryGet(name, out _))
+            {
+                return Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
+            }
+
             try
             {
                 var signalNames = request.GetSignalNames();
