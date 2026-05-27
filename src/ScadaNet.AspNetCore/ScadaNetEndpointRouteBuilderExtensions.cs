@@ -76,24 +76,26 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                 count)));
         });
 
+        group.MapGet("/discovery/detect", (
+            string address,
+            int[]? ports,
+            int? timeoutMilliseconds,
+            IDiscoveryService discovery,
+            CancellationToken cancellationToken) =>
+        {
+            return DetectAsync(
+                new ScadaNetDiscoveryRequest(address, ports, timeoutMilliseconds),
+                discovery,
+                cancellationToken);
+        });
+
         group.MapPost("/discovery/detect", async (
             ScadaNetDiscoveryRequest request,
             IDiscoveryService discovery,
             CancellationToken cancellationToken) =>
         {
-            try
-            {
-                var result = await discovery.DetectAsync(
-                        request.ToProbeRequest(),
-                        cancellationToken)
-                    .ConfigureAwait(false);
-
-                return Results.Ok(result);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                return ScadaNetHttpErrors.ToResult(ex);
-            }
+            return await DetectAsync(request, discovery, cancellationToken)
+                .ConfigureAwait(false);
         });
 
         group.MapGet("/devices/{name}/discovery", async (
@@ -879,5 +881,25 @@ public static class ScadaNetEndpointRouteBuilderExtensions
         });
 
         return group;
+    }
+
+    private static async ValueTask<IResult> DetectAsync(
+        ScadaNetDiscoveryRequest request,
+        IDiscoveryService discovery,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await discovery.DetectAsync(
+                    request.ToProbeRequest(),
+                    cancellationToken)
+                .ConfigureAwait(false);
+
+            return Results.Ok(result);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            return ScadaNetHttpErrors.ToResult(ex);
+        }
     }
 }
