@@ -251,4 +251,18 @@ public class ScadaNetOptionsValidatorTests
 
         Assert.Contains(error.Errors, item => item.Contains("Background polling max concurrency must be greater than zero"));
     }
+
+    [Fact]
+    public void Validate_rejects_non_positive_background_polling_tick_interval()
+    {
+        var options = new ScadaNetOptions
+        {
+            BackgroundPollingTickInterval = TimeSpan.Zero
+        };
+
+        var error = Assert.Throws<ScadaNetOptionsValidationException>(() =>
+            ScadaNetOptionsValidator.Validate(options));
+
+        Assert.Contains(error.Errors, item => item.Contains("Background polling tick interval must be greater than zero"));
+    }
 }

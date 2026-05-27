@@ -6,12 +6,13 @@ namespace ScadaNet.AspNetCore;
 
 public sealed class ScadaNetPollingHostedService : BackgroundService
 {
-    private static readonly TimeSpan TickInterval = TimeSpan.FromMilliseconds(250);
+    public static readonly TimeSpan DefaultTickInterval = TimeSpan.FromMilliseconds(250);
 
     private readonly IPollingGroupRegistry _groups;
     private readonly ISignalPollingService _polling;
     private readonly ILogger<ScadaNetPollingHostedService> _logger;
     private readonly int _maxConcurrency;
+    private readonly TimeSpan _tickInterval;
 
     public ScadaNetPollingHostedService(
         IPollingGroupRegistry groups,
@@ -31,6 +32,9 @@ public sealed class ScadaNetPollingHostedService : BackgroundService
         _polling = polling;
         _logger = logger;
         _maxConcurrency = Math.Max(1, options.BackgroundPollingMaxConcurrency);
+        _tickInterval = options.BackgroundPollingTickInterval <= TimeSpan.Zero
+            ? DefaultTickInterval
+            : options.BackgroundPollingTickInterval;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -71,7 +75,7 @@ public sealed class ScadaNetPollingHostedService : BackgroundService
                     }).ConfigureAwait(false);
             }
 
-            await Task.Delay(TickInterval, stoppingToken).ConfigureAwait(false);
+            await Task.Delay(_tickInterval, stoppingToken).ConfigureAwait(false);
         }
     }
 

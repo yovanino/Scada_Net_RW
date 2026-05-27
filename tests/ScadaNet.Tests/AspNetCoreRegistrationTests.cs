@@ -120,6 +120,7 @@ public class AspNetCoreRegistrationTests
         {
             ["ScadaNet:BackgroundPollingEnabled"] = "false",
             ["ScadaNet:BackgroundPollingMaxConcurrency"] = "3",
+            ["ScadaNet:BackgroundPollingTickInterval"] = "00:00:00.500",
             ["ScadaNet:WriteAuditMaxRecords"] = "250",
             ["ScadaNet:Devices:0:Name"] = "line1-plc",
             ["ScadaNet:Devices:0:Driver"] = "ethernetip",
@@ -180,6 +181,7 @@ public class AspNetCoreRegistrationTests
         var options = provider.GetRequiredService<ScadaNetOptions>();
         Assert.False(options.BackgroundPollingEnabled);
         Assert.Equal(3, options.BackgroundPollingMaxConcurrency);
+        Assert.Equal(TimeSpan.FromMilliseconds(500), options.BackgroundPollingTickInterval);
         Assert.Equal(250, options.WriteAuditMaxRecords);
         var group = Assert.Single(options.PollingGroups);
         Assert.Equal("line1-fast", group.Name);

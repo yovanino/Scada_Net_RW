@@ -10,6 +10,8 @@ public sealed class ScadaNetOptions
     public IList<SignalPollingGroupDefinition> PollingGroups { get; } = [];
     public bool BackgroundPollingEnabled { get; set; } = true;
     public int BackgroundPollingMaxConcurrency { get; set; } = 1;
+    public TimeSpan BackgroundPollingTickInterval { get; set; } =
+        ScadaNetPollingHostedService.DefaultTickInterval;
     public int WriteAuditMaxRecords { get; set; } = WriteAuditStore.DefaultMaxRecords;
 
     public void AddDevice(

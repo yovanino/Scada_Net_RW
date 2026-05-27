@@ -31,6 +31,11 @@ public static class ScadaNetOptionsValidator
             errors.Add("Background polling max concurrency must be greater than zero.");
         }
 
+        if (options.BackgroundPollingTickInterval <= TimeSpan.Zero)
+        {
+            errors.Add("Background polling tick interval must be greater than zero.");
+        }
+
         foreach (var device in options.Devices)
         {
             if (string.IsNullOrWhiteSpace(device.Name))
