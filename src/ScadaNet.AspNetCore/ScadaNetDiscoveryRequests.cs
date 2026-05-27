@@ -41,7 +41,8 @@ public sealed record ScadaNetDiscoveryRequest(
             return [];
         }
 
-        var ports = new int[Ports.Count];
+        var ports = new List<int>(Ports.Count);
+        var seen = new HashSet<int>();
         for (var index = 0; index < Ports.Count; index++)
         {
             var port = Ports[index];
@@ -53,10 +54,13 @@ public sealed record ScadaNetDiscoveryRequest(
                     "Discovery port must be between 1 and 65535.");
             }
 
-            ports[index] = port;
+            if (seen.Add(port))
+            {
+                ports.Add(port);
+            }
         }
 
-        return ports;
+        return ports.ToArray();
     }
 }
 

@@ -31,6 +31,18 @@ public class ScadaNetDiscoveryRequestsTests
     }
 
     [Fact]
+    public void ToProbeRequest_removes_duplicate_ports()
+    {
+        var request = new ScadaNetDiscoveryRequest(
+            "192.168.0.10",
+            [44818, 502, 44818, 502, 2222]);
+
+        var probe = request.ToProbeRequest();
+
+        Assert.Equal([44818, 502, 2222], probe.Ports);
+    }
+
+    [Fact]
     public void ToProbeRequest_rejects_empty_address()
     {
         var request = new ScadaNetDiscoveryRequest(" ");
