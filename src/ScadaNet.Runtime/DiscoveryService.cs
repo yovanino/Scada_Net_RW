@@ -20,15 +20,9 @@ public sealed class DiscoveryService : IDiscoveryService
             return NoMatch(request, []);
         }
 
-        var results = new List<DeviceDetectionResult>(_drivers.Count);
-
-        foreach (var driver in _drivers)
-        {
-            var result = await driver.ProbeAsync(request, cancellationToken)
-                .ConfigureAwait(false);
-
-            results.Add(result);
-        }
+        var results = await Task.WhenAll(_drivers
+                .Select(driver => driver.ProbeAsync(request, cancellationToken).AsTask()))
+            .ConfigureAwait(false);
 
         var probes = results.SelectMany(result => result.Probes).ToArray();
         var best = results
