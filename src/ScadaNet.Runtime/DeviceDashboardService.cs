@@ -62,6 +62,17 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             signals.Count(signal => signal.IsArray));
     }
 
+    public IReadOnlyList<DeviceDashboardIssue> GetIssues()
+    {
+        return GetAll()
+            .SelectMany(GetIssues)
+            .OrderByDescending(issue => issue.Severity)
+            .ThenBy(issue => issue.DeviceName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(issue => issue.Source, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(issue => issue.Code, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
     public bool TryGet(string deviceName, out DeviceDashboard dashboard)
     {
         if (!_devices.TryGet(deviceName, out var device) ||
@@ -91,5 +102,76 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             pollingGroups,
             snapshots);
         return true;
+    }
+
+    private static IEnumerable<DeviceDashboardIssue> GetIssues(DeviceDashboard dashboard)
+    {
+        if (dashboard.Health.State is DeviceHealthState.Degraded or DeviceHealthState.Unknown)
+        {
+            yield return new DeviceDashboardIssue(
+                dashboard.Device.Name,
+                dashboard.Health.State == DeviceHealthState.Degraded
+                    ? DeviceDashboardIssueSeverity.Critical
+                    : DeviceDashboardIssueSeverity.Warning,
+                "health",
+                dashboard.Health.State == DeviceHealthState.Degraded
+                    ? "device-health-degraded"
+                    : "device-health-unknown",
+                GetHealthMessage(dashboard.Health));
+        }
+
+        if (dashboard.Connection is { FailedRentCount: > 0 } connection)
+        {
+            yield return new DeviceDashboardIssue(
+                dashboard.Device.Name,
+                connection.HasConnection
+                    ? DeviceDashboardIssueSeverity.Warning
+                    : DeviceDashboardIssueSeverity.Critical,
+                "connection",
+                "connection-rent-failed",
+                string.IsNullOrWhiteSpace(connection.LastError)
+                    ? "Connection pool recorded one or more rent failures."
+                    : connection.LastError);
+        }
+
+        foreach (var group in dashboard.PollingGroups)
+        {
+            if (group.IsStale)
+            {
+                yield return new DeviceDashboardIssue(
+                    dashboard.Device.Name,
+                    DeviceDashboardIssueSeverity.Warning,
+                    "polling",
+                    "polling-group-stale",
+                    $"Polling group '{group.GroupName}' has not run within {group.StaleAfter}.");
+            }
+            else if (group is { HasStatus: true, Healthy: false })
+            {
+                yield return new DeviceDashboardIssue(
+                    dashboard.Device.Name,
+                    DeviceDashboardIssueSeverity.Critical,
+                    "polling",
+                    "polling-group-failed",
+                    string.IsNullOrWhiteSpace(group.Error)
+                        ? $"Polling group '{group.GroupName}' failed."
+                        : group.Error);
+            }
+            else if (group.Enabled && !group.HasStatus)
+            {
+                yield return new DeviceDashboardIssue(
+                    dashboard.Device.Name,
+                    DeviceDashboardIssueSeverity.Warning,
+                    "polling",
+                    "polling-group-no-status",
+                    $"Polling group '{group.GroupName}' has no recorded status.");
+            }
+        }
+    }
+
+    private static string GetHealthMessage(DeviceHealthSummary health)
+    {
+        return health.Messages.Count == 0
+            ? $"Device health is {health.State}."
+            : string.Join(" ", health.Messages);
     }
 }

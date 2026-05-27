@@ -6,5 +6,7 @@ public interface IDeviceDashboardService
 
     DeviceDashboardOverview GetOverview();
 
+    IReadOnlyList<DeviceDashboardIssue> GetIssues();
+
     bool TryGet(string deviceName, out DeviceDashboard dashboard);
 }

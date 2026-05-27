@@ -132,6 +132,52 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public async Task GetIssues_returns_actionable_dashboard_issues()
+    {
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        device.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "counter",
+            Address = "Counter"
+        });
+        var registry = new DeviceRegistry([device]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        var group = new SignalPollingGroupDefinition
+        {
+            Name = "line1-fast",
+            DeviceName = "line1-plc"
+        };
+        statuses.MarkFailure(
+            group,
+            TimeSpan.FromMilliseconds(25),
+            new InvalidOperationException("PLC read timeout."));
+        await using var connections = new DeviceConnectionPool(new FailingConnectionFactory());
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await connections.RentAsync("line1-plc"));
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([group]), statuses),
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var issues = service.GetIssues();
+
+        Assert.Contains(issues, issue =>
+            issue.Code == "device-health-degraded" &&
+            issue.Severity == DeviceDashboardIssueSeverity.Critical);
+        Assert.Contains(issues, issue =>
+            issue.Code == "connection-rent-failed" &&
+            issue.Source == "connection" &&
+            issue.Severity == DeviceDashboardIssueSeverity.Critical);
+        Assert.Contains(issues, issue =>
+            issue.Code == "polling-group-failed" &&
+            issue.Source == "polling" &&
+            issue.Message == "PLC read timeout.");
+    }
+
+    [Fact]
     public void TryGet_returns_false_for_unknown_device()
     {
         var registry = new DeviceRegistry([]);
@@ -157,6 +203,16 @@ public class DeviceDashboardServiceTests
             CancellationToken cancellationToken = default)
         {
             return ValueTask.FromResult<Protocols.IDeviceConnection>(new FakeConnection());
+        }
+    }
+
+    private sealed class FailingConnectionFactory : IDeviceConnectionFactory
+    {
+        public ValueTask<Protocols.IDeviceConnection> ConnectAsync(
+            string deviceName,
+            CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("Connection refused.");
         }
     }
 
