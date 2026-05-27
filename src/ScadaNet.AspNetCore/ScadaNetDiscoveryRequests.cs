@@ -64,4 +64,7 @@ public sealed record ScadaNetDiscoveryRequest(
     }
 }
 
-public sealed record ScadaNetDiscoveryDriverInfo(string Name);
+public sealed record ScadaNetDiscoveryDriverInfo(
+    string Name,
+    IReadOnlyList<int> DefaultPorts,
+    IReadOnlyList<string> Capabilities);

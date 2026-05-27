@@ -8,6 +8,17 @@ namespace ScadaNet.Tests;
 public class EtherNetIpDiscoveryDriverTests
 {
     [Fact]
+    public void Metadata_describes_default_discovery_ports_and_capabilities()
+    {
+        var metadata = Assert.IsAssignableFrom<IDeviceDriverMetadata>(
+            new EtherNetIpDiscoveryDriver());
+
+        Assert.Equal([EtherNetIpDefaults.ExplicitMessagingPort], metadata.DefaultPorts);
+        Assert.Contains("ReadIdentity", metadata.Capabilities);
+        Assert.Contains("ExplicitMessaging", metadata.Capabilities);
+    }
+
+    [Fact]
     public async Task ProbeAsync_returns_identity_when_list_identity_succeeds()
     {
         using var listener = new TcpListener(IPAddress.Loopback, 0);

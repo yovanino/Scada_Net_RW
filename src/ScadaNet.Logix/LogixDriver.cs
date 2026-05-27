@@ -3,9 +3,20 @@ using ScadaNet.Protocols;
 
 namespace ScadaNet.Logix;
 
-public sealed class LogixDriver : IDeviceDriver
+public sealed class LogixDriver : IDeviceDriver, IDeviceDriverMetadata
 {
     public string DriverName => "Logix";
+
+    public IReadOnlyList<int> DefaultPorts { get; } = [EtherNetIp.EtherNetIpDefaults.ExplicitMessagingPort];
+
+    public IReadOnlyList<string> Capabilities { get; } =
+    [
+        "LogixTags",
+        "Read",
+        "Write",
+        "ReadMany",
+        "Arrays"
+    ];
 
     public ValueTask<IDeviceConnection> ConnectAsync(
         DeviceConnectionOptions options,
@@ -14,7 +25,7 @@ public sealed class LogixDriver : IDeviceDriver
         var client = new LogixClient(new LogixClientOptions
         {
             Address = options.Address,
-            Port = options.Port ?? 44818,
+            Port = options.Port ?? DefaultPorts[0],
             Path = options.Path ?? "1,0",
             Timeout = options.Timeout
         });

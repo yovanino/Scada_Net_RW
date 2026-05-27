@@ -6,6 +6,17 @@ namespace ScadaNet.Tests;
 public class LogixDriverTests
 {
     [Fact]
+    public void Metadata_describes_default_discovery_ports_and_capabilities()
+    {
+        var metadata = Assert.IsAssignableFrom<IDeviceDriverMetadata>(
+            new LogixDriver());
+
+        Assert.Equal([ScadaNet.EtherNetIp.EtherNetIpDefaults.ExplicitMessagingPort], metadata.DefaultPorts);
+        Assert.Contains("LogixTags", metadata.Capabilities);
+        Assert.Contains("ReadMany", metadata.Capabilities);
+    }
+
+    [Fact]
     public async Task ConnectAsync_returns_logix_device_connection()
     {
         var driver = new LogixDriver();

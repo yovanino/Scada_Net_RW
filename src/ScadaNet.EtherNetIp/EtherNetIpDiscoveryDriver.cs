@@ -3,9 +3,13 @@ using ScadaNet.Protocols;
 
 namespace ScadaNet.EtherNetIp;
 
-public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver
+public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMetadata
 {
     public string DriverName => "EtherNetIp";
+
+    public IReadOnlyList<int> DefaultPorts { get; } = [EtherNetIpDefaults.ExplicitMessagingPort];
+
+    public IReadOnlyList<string> Capabilities { get; } = ["ReadIdentity", "ExplicitMessaging"];
 
     public ValueTask<IDeviceConnection> ConnectAsync(
         DeviceConnectionOptions options,
@@ -19,7 +23,7 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver
         CancellationToken cancellationToken = default)
     {
         var ports = request.Ports.Count == 0
-            ? new[] { EtherNetIpDefaults.ExplicitMessagingPort }
+            ? DefaultPorts
             : request.Ports;
 
         var probes = new List<ProtocolProbeResult>();
