@@ -294,10 +294,19 @@ public static class ScadaNetEndpointRouteBuilderExtensions
         group.MapGet("/devices/{name}/signals/{signalName}/read", async (
             string name,
             string signalName,
+            IDeviceRegistry registry,
             IDeviceSignalResolver signals,
             IPlcRuntime runtime,
             CancellationToken cancellationToken) =>
         {
+            if (!registry.TryGet(name, out _))
+            {
+                return Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
+            }
+
             if (!signals.TryResolve(name, signalName, out var resolution))
             {
                 return Results.NotFound(new
@@ -432,10 +441,19 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             string name,
             string signalName,
             ushort? count,
+            IDeviceRegistry registry,
             IDeviceSignalResolver signals,
             IPlcRuntime runtime,
             CancellationToken cancellationToken) =>
         {
+            if (!registry.TryGet(name, out _))
+            {
+                return Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
+            }
+
             if (!signals.TryResolve(name, signalName, out var resolution))
             {
                 return Results.NotFound(new
@@ -473,10 +491,19 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             string name,
             string signalName,
             ScadaNetWriteNamedSignalRequest request,
+            IDeviceRegistry registry,
             IDeviceSignalResolver signals,
             IPlcRuntime runtime,
             CancellationToken cancellationToken) =>
         {
+            if (!registry.TryGet(name, out _))
+            {
+                return Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
+            }
+
             if (!signals.TryResolve(name, signalName, out var resolution))
             {
                 return Results.NotFound(new
@@ -520,10 +547,19 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             string name,
             string signalName,
             ScadaNetWriteNamedArrayRequest request,
+            IDeviceRegistry registry,
             IDeviceSignalResolver signals,
             IPlcRuntime runtime,
             CancellationToken cancellationToken) =>
         {
+            if (!registry.TryGet(name, out _))
+            {
+                return Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
+            }
+
             if (!signals.TryResolve(name, signalName, out var resolution))
             {
                 return Results.NotFound(new
