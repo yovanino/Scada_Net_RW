@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ScadaNet.Protocols;
 
 namespace ScadaNet.Runtime;
@@ -43,6 +44,8 @@ public sealed class DiscoveryService : IDiscoveryService
         ProbeRequest request,
         CancellationToken cancellationToken)
     {
+        var startedAt = Stopwatch.GetTimestamp();
+
         try
         {
             return await driver.ProbeAsync(request, cancellationToken)
@@ -62,7 +65,8 @@ public sealed class DiscoveryService : IDiscoveryService
                         port == 0 ? null : port,
                         Succeeded: false,
                         Evidence: null,
-                        Error: ex.Message)
+                        Error: ex.Message,
+                        Duration: Stopwatch.GetElapsedTime(startedAt))
                 ],
                 RecommendedDriver: null,
                 Confidence: 0,

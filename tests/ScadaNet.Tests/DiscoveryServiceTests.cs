@@ -75,7 +75,8 @@ public class DiscoveryServiceTests
         Assert.Contains(result.Probes, probe =>
             probe.Protocol == "FailingProtocol" &&
             !probe.Succeeded &&
-            probe.Error == "probe failed");
+            probe.Error == "probe failed" &&
+            probe.Duration.HasValue);
         Assert.Contains(result.Probes, probe =>
             probe.Protocol == "WorkingProtocol" &&
             probe.Succeeded);
