@@ -33,6 +33,20 @@ public sealed class PollingGroupMonitor : IPollingGroupMonitor
             .ToArray();
     }
 
+    public IReadOnlyList<PollingGroupSummary> GetForDevice(string deviceName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(deviceName);
+
+        return _groups.Groups
+            .Where(group => string.Equals(
+                group.DeviceName,
+                deviceName,
+                StringComparison.OrdinalIgnoreCase))
+            .Select(BuildSummary)
+            .OrderBy(summary => summary.GroupName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+    }
+
     public bool TryGet(string groupName, out PollingGroupSummary summary)
     {
         if (!_groups.TryGet(groupName, out var group))

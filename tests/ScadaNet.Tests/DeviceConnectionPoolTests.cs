@@ -215,6 +215,35 @@ public class DeviceConnectionPoolTests
         Assert.Equal("PLC unavailable", status.LastError);
     }
 
+    [Fact]
+    public async Task TryGetStatus_returns_one_device_status_by_name()
+    {
+        var factory = new FakeConnectionFactory();
+        await using var pool = new DeviceConnectionPool(factory);
+
+        await using (await pool.RentAsync("line1-plc"))
+        {
+        }
+
+        var found = pool.TryGetStatus("LINE1-PLC", out var status);
+
+        Assert.True(found);
+        Assert.Equal("line1-plc", status.DeviceName);
+        Assert.True(status.HasConnection);
+        Assert.Equal(1, status.RentCount);
+    }
+
+    [Fact]
+    public void TryGetStatus_returns_false_for_unknown_device()
+    {
+        var factory = new FakeConnectionFactory();
+        using var pool = new DeviceConnectionPool(factory);
+
+        var found = pool.TryGetStatus("missing", out _);
+
+        Assert.False(found);
+    }
+
     private sealed class FakeConnectionFactory : IDeviceConnectionFactory
     {
         public int ConnectCount { get; private set; }

@@ -95,8 +95,8 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
 
         return TryBuildSummary(
             device,
-            _connections.GetStatus(),
-            _pollingGroups.GetAll(),
+            TryGetConnectionStatus(device.Name),
+            _pollingGroups.GetForDevice(device.Name),
             out summary);
     }
 
@@ -177,7 +177,11 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             return false;
         }
 
-        issues = GetIssues(device, _connections.GetStatus(), _pollingGroups.GetAll())
+        issues = BuildIssues(
+                device.Name,
+                _health.TryGet(device.Name, out var health) ? health : null,
+                TryGetConnectionStatus(device.Name),
+                _pollingGroups.GetForDevice(device.Name))
             .OrderByDescending(issue => issue.Severity)
             .ThenBy(issue => issue.Source, StringComparer.OrdinalIgnoreCase)
             .ThenBy(issue => issue.Code, StringComparer.OrdinalIgnoreCase)
@@ -212,17 +216,8 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             return false;
         }
 
-        var connection = _connections.GetStatus()
-            .FirstOrDefault(status => string.Equals(
-                status.DeviceName,
-                device.Name,
-                StringComparison.OrdinalIgnoreCase));
-        var pollingGroups = _pollingGroups.GetAll()
-            .Where(group => string.Equals(
-                group.DeviceName,
-                device.Name,
-                StringComparison.OrdinalIgnoreCase))
-            .ToArray();
+        var connection = TryGetConnectionStatus(device.Name);
+        var pollingGroups = _pollingGroups.GetForDevice(device.Name);
 
         dashboard = new DeviceDashboard(
             device,
@@ -239,12 +234,6 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         IReadOnlyList<PollingGroupSummary> pollingGroups,
         out DeviceDashboardSummary summary)
     {
-        if (!_health.TryGet(device.Name, out var health))
-        {
-            summary = default!;
-            return false;
-        }
-
         var connection = connections.FirstOrDefault(status => string.Equals(
             status.DeviceName,
             device.Name,
@@ -255,6 +244,22 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
                 device.Name,
                 StringComparison.OrdinalIgnoreCase))
             .ToArray();
+
+        return TryBuildSummary(device, connection, devicePollingGroups, out summary);
+    }
+
+    private bool TryBuildSummary(
+        DeviceDefinition device,
+        DeviceConnectionPoolStatus? connection,
+        IReadOnlyList<PollingGroupSummary> devicePollingGroups,
+        out DeviceDashboardSummary summary)
+    {
+        if (!_health.TryGet(device.Name, out var health))
+        {
+            summary = default!;
+            return false;
+        }
+
         var issues = BuildIssues(device.Name, health, connection, devicePollingGroups).ToArray();
 
         summary = new DeviceDashboardSummary(
@@ -264,7 +269,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             health.State,
             connection?.HasConnection ?? false,
             connection?.IsInUse ?? false,
-            devicePollingGroups.Length,
+            devicePollingGroups.Count,
             devicePollingGroups.Count(group => group.IsStale),
             device.Signals.Count,
             device.Signals.Count(signal => _snapshotStore.TryGet(
@@ -316,10 +321,15 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
 
     private static IEnumerable<DeviceDashboardIssue> BuildIssues(
         string deviceName,
-        DeviceHealthSummary health,
+        DeviceHealthSummary? health,
         DeviceConnectionPoolStatus? connection,
         IReadOnlyList<PollingGroupSummary> pollingGroups)
     {
+        if (health is null)
+        {
+            yield break;
+        }
+
         if (health.State is DeviceHealthState.Degraded or DeviceHealthState.Unknown)
         {
             yield return new DeviceDashboardIssue(
@@ -380,6 +390,13 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
                     $"Polling group '{group.GroupName}' has no recorded status.");
             }
         }
+    }
+
+    private DeviceConnectionPoolStatus? TryGetConnectionStatus(string deviceName)
+    {
+        return _connections.TryGetStatus(deviceName, out var connection)
+            ? connection
+            : null;
     }
 
     private static string GetHealthMessage(DeviceHealthSummary health)

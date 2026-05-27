@@ -315,6 +315,14 @@ public class PlcRuntimeTests
         {
             return [];
         }
+
+        public bool TryGetStatus(
+            string deviceName,
+            out DeviceConnectionPoolStatus status)
+        {
+            status = default!;
+            return false;
+        }
     }
 
     private sealed class FakeLease : IDeviceConnectionLease

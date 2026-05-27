@@ -60,6 +60,33 @@ public class PollingGroupMonitorTests
     }
 
     [Fact]
+    public void GetForDevice_returns_only_device_groups_ordered_by_group_name()
+    {
+        var monitor = CreateMonitor(out _, [
+            new SignalPollingGroupDefinition
+            {
+                Name = "line2-fast",
+                DeviceName = "line2-plc"
+            },
+            new SignalPollingGroupDefinition
+            {
+                Name = "line1-slow",
+                DeviceName = "line1-plc"
+            },
+            new SignalPollingGroupDefinition
+            {
+                Name = "line1-fast",
+                DeviceName = "line1-plc"
+            }
+        ]);
+
+        var summaries = monitor.GetForDevice("LINE1-PLC");
+
+        Assert.Equal(["line1-fast", "line1-slow"], summaries.Select(summary => summary.GroupName));
+        Assert.All(summaries, summary => Assert.Equal("line1-plc", summary.DeviceName));
+    }
+
+    [Fact]
     public void TryGet_marks_enabled_group_as_stale_when_last_run_exceeds_stale_window()
     {
         var now = new DateTimeOffset(2026, 5, 26, 10, 0, 0, TimeSpan.Zero);

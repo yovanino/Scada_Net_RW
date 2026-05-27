@@ -190,6 +190,55 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public void TryGetSummary_uses_device_scoped_connection_and_polling_queries()
+    {
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        var registry = new DeviceRegistry([device]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            new ScopedConnectionPool(
+                new DeviceConnectionPoolStatus(
+                    "line1-plc",
+                    HasConnection: true,
+                    IsInUse: false,
+                    RentCount: 1,
+                    FailedRentCount: 0,
+                    ConnectedAt: DateTimeOffset.UtcNow,
+                    LastRentedAt: DateTimeOffset.UtcNow,
+                    LastFailureAt: null,
+                    LastError: null)),
+            new ScopedPollingGroupMonitor([
+                new PollingGroupSummary(
+                    "line1-fast",
+                    "line1-plc",
+                    Enabled: true,
+                    TimeSpan.FromSeconds(1),
+                    ConfiguredSignalCount: 0,
+                    Addresses: [],
+                    SignalNames: [],
+                    HasStatus: false,
+                    Healthy: null,
+                    LastRun: null,
+                    LastRunAge: null,
+                    Duration: null,
+                    StaleAfter: TimeSpan.FromSeconds(3),
+                    IsStale: false,
+                    Error: null)
+            ]),
+            snapshots,
+            new ThrowingSignalSnapshotReader());
+
+        var found = service.TryGetSummary("LINE1-PLC", out var summary);
+
+        Assert.True(found);
+        Assert.True(summary.HasConnection);
+        Assert.Equal(1, summary.PollingGroupCount);
+    }
+
+    [Fact]
     public void GetAttentionSummaries_returns_only_devices_with_issues_first()
     {
         var line1 = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
@@ -795,6 +844,85 @@ public class DeviceDashboardServiceTests
             out DeviceSignalSnapshot snapshot)
         {
             throw new InvalidOperationException("Detailed snapshots should not be built.");
+        }
+    }
+
+    private sealed class ScopedConnectionPool : IDeviceConnectionPool
+    {
+        private readonly DeviceConnectionPoolStatus _status;
+
+        public ScopedConnectionPool(DeviceConnectionPoolStatus status)
+        {
+            _status = status;
+        }
+
+        public ValueTask<IDeviceConnectionLease> RentAsync(
+            string deviceName,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask<bool> CloseAsync(
+            string deviceName,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask<int> CloseAllAsync(CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public IReadOnlyList<DeviceConnectionPoolStatus> GetStatus()
+        {
+            throw new InvalidOperationException("Device-scoped dashboard queries should not read all pool statuses.");
+        }
+
+        public bool TryGetStatus(
+            string deviceName,
+            out DeviceConnectionPoolStatus status)
+        {
+            if (string.Equals(deviceName, _status.DeviceName, StringComparison.OrdinalIgnoreCase))
+            {
+                status = _status;
+                return true;
+            }
+
+            status = default!;
+            return false;
+        }
+    }
+
+    private sealed class ScopedPollingGroupMonitor : IPollingGroupMonitor
+    {
+        private readonly IReadOnlyList<PollingGroupSummary> _summaries;
+
+        public ScopedPollingGroupMonitor(IReadOnlyList<PollingGroupSummary> summaries)
+        {
+            _summaries = summaries;
+        }
+
+        public IReadOnlyList<PollingGroupSummary> GetAll()
+        {
+            throw new InvalidOperationException("Device-scoped dashboard queries should not read all polling groups.");
+        }
+
+        public IReadOnlyList<PollingGroupSummary> GetForDevice(string deviceName)
+        {
+            return _summaries
+                .Where(summary => string.Equals(
+                    summary.DeviceName,
+                    deviceName,
+                    StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+        }
+
+        public bool TryGet(string groupName, out PollingGroupSummary summary)
+        {
+            summary = default!;
+            return false;
         }
     }
 

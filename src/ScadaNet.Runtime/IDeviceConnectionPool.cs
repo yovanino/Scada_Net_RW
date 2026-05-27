@@ -14,4 +14,6 @@ public interface IDeviceConnectionPool
         CancellationToken cancellationToken = default);
 
     IReadOnlyList<DeviceConnectionPoolStatus> GetStatus();
+
+    bool TryGetStatus(string deviceName, out DeviceConnectionPoolStatus status);
 }

@@ -137,18 +137,25 @@ public sealed class DeviceConnectionPool : IDeviceConnectionPool, IAsyncDisposab
     public IReadOnlyList<DeviceConnectionPoolStatus> GetStatus()
     {
         return _entries.Values
-            .Select(entry => new DeviceConnectionPoolStatus(
-                entry.DeviceName,
-                entry.Connection is not null,
-                entry.Lock.CurrentCount == 0,
-                entry.RentCount,
-                entry.FailedRentCount,
-                entry.ConnectedAt,
-                entry.LastRentedAt,
-                entry.LastFailureAt,
-                entry.LastError))
+            .Select(ToStatus)
             .OrderBy(status => status.DeviceName, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+    }
+
+    public bool TryGetStatus(
+        string deviceName,
+        out DeviceConnectionPoolStatus status)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(deviceName);
+
+        if (!_entries.TryGetValue(deviceName, out var entry))
+        {
+            status = default!;
+            return false;
+        }
+
+        status = ToStatus(entry);
+        return true;
     }
 
     public void Dispose()
@@ -172,6 +179,20 @@ public sealed class DeviceConnectionPool : IDeviceConnectionPool, IAsyncDisposab
         public long FailedRentCount { get; set; }
         public DateTimeOffset? LastFailureAt { get; set; }
         public string? LastError { get; set; }
+    }
+
+    private static DeviceConnectionPoolStatus ToStatus(DeviceConnectionPoolEntry entry)
+    {
+        return new DeviceConnectionPoolStatus(
+            entry.DeviceName,
+            entry.Connection is not null,
+            entry.Lock.CurrentCount == 0,
+            entry.RentCount,
+            entry.FailedRentCount,
+            entry.ConnectedAt,
+            entry.LastRentedAt,
+            entry.LastFailureAt,
+            entry.LastError);
     }
 
     private sealed class DeviceConnectionLease : IDeviceConnectionLease
