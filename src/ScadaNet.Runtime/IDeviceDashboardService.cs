@@ -39,5 +39,10 @@ public interface IDeviceDashboardService
 
     bool TryGetRuntimeStatus(string deviceName, out DeviceRuntimeStatus status);
 
+    bool TryGetRuntimeStatus(
+        string deviceName,
+        DeviceDashboardIssueSeverity? minimumSeverity,
+        out DeviceRuntimeStatus status);
+
     bool TryGet(string deviceName, out DeviceDashboard dashboard);
 }

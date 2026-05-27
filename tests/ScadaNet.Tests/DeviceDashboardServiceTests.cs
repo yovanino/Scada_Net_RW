@@ -310,6 +310,57 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public void TryGetRuntimeStatus_can_filter_issue_summaries_by_minimum_severity()
+    {
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        var registry = new DeviceRegistry([device]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        var group = new SignalPollingGroupDefinition
+        {
+            Name = "line1-fast",
+            DeviceName = "line1-plc"
+        };
+        statuses.MarkFailure(
+            group,
+            TimeSpan.FromMilliseconds(25),
+            new InvalidOperationException("PLC read timeout."));
+        var writeAudit = new WriteAuditStore();
+        writeAudit.Add(new WriteAuditRecord(
+            0,
+            DateTimeOffset.UtcNow,
+            new SignalRef("line1-plc", "ResetCommand"),
+            true,
+            Succeeded: false,
+            Error: "PLC rejected write."));
+        using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([group]), statuses),
+            snapshots,
+            new ThrowingSignalSnapshotReader(),
+            writeAudit);
+
+        var found = service.TryGetRuntimeStatus(
+            "LINE1-PLC",
+            DeviceDashboardIssueSeverity.Critical,
+            out var status);
+
+        Assert.True(found);
+        Assert.Equal(1, status.Summary.WriteAuditIssueCount);
+        Assert.Contains(status.IssueSummaries, summary =>
+            summary.Source == DeviceDashboardIssueSources.Health &&
+            summary.CriticalIssueCount == 1);
+        Assert.Contains(status.IssueSummaries, summary =>
+            summary.Source == DeviceDashboardIssueSources.Polling &&
+            summary.CriticalIssueCount == 1);
+        Assert.DoesNotContain(status.IssueSummaries, summary =>
+            summary.Source == DeviceDashboardIssueSources.WriteAudit);
+    }
+
+    [Fact]
     public void TryGetRuntimeStatus_reuses_device_write_audit_summary()
     {
         var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");

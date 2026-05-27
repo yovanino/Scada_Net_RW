@@ -252,6 +252,14 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         string deviceName,
         out DeviceRuntimeStatus status)
     {
+        return TryGetRuntimeStatus(deviceName, minimumSeverity: null, out status);
+    }
+
+    public bool TryGetRuntimeStatus(
+        string deviceName,
+        DeviceDashboardIssueSeverity? minimumSeverity,
+        out DeviceRuntimeStatus status)
+    {
         if (!_devices.TryGet(deviceName, out var device))
         {
             status = default!;
@@ -276,7 +284,9 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             summary,
             connection,
             pollingGroups,
-            BuildIssueSummaries(issues),
+            BuildIssueSummaries(ApplyFilter(
+                issues,
+                new DeviceDashboardIssueFilter(MinimumSeverity: minimumSeverity))),
             writeAudit,
             DateTimeOffset.UtcNow);
         return true;

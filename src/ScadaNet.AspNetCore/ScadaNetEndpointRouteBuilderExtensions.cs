@@ -124,9 +124,10 @@ public static class ScadaNetEndpointRouteBuilderExtensions
 
         group.MapGet("/devices/{name}/runtime/status", (
             string name,
+            DeviceDashboardIssueSeverity? minimumSeverity,
             IDeviceDashboardService dashboards) =>
         {
-            return dashboards.TryGetRuntimeStatus(name, out var status)
+            return dashboards.TryGetRuntimeStatus(name, minimumSeverity, out var status)
                 ? Results.Ok(status)
                 : Results.NotFound(new
                 {
