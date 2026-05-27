@@ -11,15 +11,26 @@ public sealed class ScadaNetPollingHostedService : BackgroundService
     private readonly IPollingGroupRegistry _groups;
     private readonly ISignalPollingService _polling;
     private readonly ILogger<ScadaNetPollingHostedService> _logger;
+    private readonly int _maxConcurrency;
 
     public ScadaNetPollingHostedService(
         IPollingGroupRegistry groups,
         ISignalPollingService polling,
         ILogger<ScadaNetPollingHostedService> logger)
+        : this(groups, polling, logger, new ScadaNetOptions())
+    {
+    }
+
+    public ScadaNetPollingHostedService(
+        IPollingGroupRegistry groups,
+        ISignalPollingService polling,
+        ILogger<ScadaNetPollingHostedService> logger,
+        ScadaNetOptions options)
     {
         _groups = groups;
         _polling = polling;
         _logger = logger;
+        _maxConcurrency = Math.Max(1, options.BackgroundPollingMaxConcurrency);
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -29,34 +40,59 @@ public sealed class ScadaNetPollingHostedService : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             var now = DateTimeOffset.UtcNow;
+            var dueGroups = _groups.Groups
+                .Where(group => group.Enabled && ShouldRun(group, now, lastRuns))
+                .ToArray();
 
-            foreach (var group in _groups.Groups.Where(group => group.Enabled))
+            foreach (var group in dueGroups)
             {
-                if (!ShouldRun(group, now, lastRuns))
-                {
-                    continue;
-                }
-
                 lastRuns[GetGroupKey(group)] = now;
+            }
 
-                try
+            if (_maxConcurrency == 1)
+            {
+                foreach (var group in dueGroups)
                 {
-                    await _polling.PollAsync(group, stoppingToken).ConfigureAwait(false);
+                    await PollGroupAsync(group, stoppingToken).ConfigureAwait(false);
                 }
-                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
-                {
-                    throw;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(
-                        ex,
-                        "Polling group '{PollingGroup}' failed.",
-                        group.Name);
-                }
+            }
+            else if (dueGroups.Length > 0)
+            {
+                await Parallel.ForEachAsync(
+                    dueGroups,
+                    new ParallelOptions
+                    {
+                        CancellationToken = stoppingToken,
+                        MaxDegreeOfParallelism = _maxConcurrency
+                    },
+                    async (group, cancellationToken) =>
+                    {
+                        await PollGroupAsync(group, cancellationToken).ConfigureAwait(false);
+                    }).ConfigureAwait(false);
             }
 
             await Task.Delay(TickInterval, stoppingToken).ConfigureAwait(false);
+        }
+    }
+
+    private async ValueTask PollGroupAsync(
+        SignalPollingGroupDefinition group,
+        CancellationToken stoppingToken)
+    {
+        try
+        {
+            await _polling.PollAsync(group, stoppingToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(
+                ex,
+                "Polling group '{PollingGroup}' failed.",
+                group.Name);
         }
     }
 

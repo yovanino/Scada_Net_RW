@@ -237,4 +237,18 @@ public class ScadaNetOptionsValidatorTests
 
         Assert.Contains(error.Errors, item => item.Contains("Write audit max records must be greater than zero"));
     }
+
+    [Fact]
+    public void Validate_rejects_non_positive_background_polling_max_concurrency()
+    {
+        var options = new ScadaNetOptions
+        {
+            BackgroundPollingMaxConcurrency = 0
+        };
+
+        var error = Assert.Throws<ScadaNetOptionsValidationException>(() =>
+            ScadaNetOptionsValidator.Validate(options));
+
+        Assert.Contains(error.Errors, item => item.Contains("Background polling max concurrency must be greater than zero"));
+    }
 }

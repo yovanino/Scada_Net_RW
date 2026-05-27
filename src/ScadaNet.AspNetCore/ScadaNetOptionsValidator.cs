@@ -26,6 +26,11 @@ public static class ScadaNetOptionsValidator
             errors.Add("Write audit max records must be greater than zero.");
         }
 
+        if (options.BackgroundPollingMaxConcurrency <= 0)
+        {
+            errors.Add("Background polling max concurrency must be greater than zero.");
+        }
+
         foreach (var device in options.Devices)
         {
             if (string.IsNullOrWhiteSpace(device.Name))

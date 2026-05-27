@@ -9,6 +9,7 @@ public sealed class ScadaNetOptions
     public IList<DeviceDefinition> Devices { get; } = [];
     public IList<SignalPollingGroupDefinition> PollingGroups { get; } = [];
     public bool BackgroundPollingEnabled { get; set; } = true;
+    public int BackgroundPollingMaxConcurrency { get; set; } = 1;
     public int WriteAuditMaxRecords { get; set; } = WriteAuditStore.DefaultMaxRecords;
 
     public void AddDevice(
