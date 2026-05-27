@@ -53,8 +53,55 @@ public sealed class WriteAuditStore : IWriteAuditStore
         }
     }
 
+    public WriteAuditSummary GetSummary()
+    {
+        lock (_sync)
+        {
+            return BuildSummary(deviceName: null, _records);
+        }
+    }
+
+    public WriteAuditSummary GetDeviceSummary(string deviceName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(deviceName);
+
+        lock (_sync)
+        {
+            var records = _records
+                .Where(record => string.Equals(
+                    record.Signal.DeviceName,
+                    deviceName,
+                    StringComparison.OrdinalIgnoreCase))
+                .ToArray();
+
+            return BuildSummary(deviceName, records);
+        }
+    }
+
     private static int NormalizeCount(int count)
     {
         return Math.Clamp(count, 1, MaxRecords);
+    }
+
+    private static WriteAuditSummary BuildSummary(
+        string? deviceName,
+        IReadOnlyList<WriteAuditRecord> records)
+    {
+        var latest = records
+            .OrderByDescending(record => record.Sequence)
+            .FirstOrDefault();
+        var latestFailure = records
+            .Where(record => !record.Succeeded)
+            .OrderByDescending(record => record.Sequence)
+            .FirstOrDefault();
+
+        return new WriteAuditSummary(
+            deviceName,
+            records.Count,
+            records.Count(record => record.Succeeded),
+            records.Count(record => !record.Succeeded),
+            latest?.Timestamp,
+            latestFailure?.Timestamp,
+            latestFailure?.Error);
     }
 }

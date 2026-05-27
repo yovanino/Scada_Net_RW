@@ -741,6 +741,11 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             return Results.Ok(audit.GetRecent(count ?? 100));
         });
 
+        group.MapGet("/writes/audit/summary", (IWriteAuditStore audit) =>
+        {
+            return Results.Ok(audit.GetSummary());
+        });
+
         group.MapGet("/devices/{name}/writes/audit", (
             string name,
             int? count,
@@ -756,6 +761,19 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             }
 
             return Results.Ok(audit.GetDeviceRecords(name, count ?? 100));
+        });
+
+        group.MapGet("/devices/{name}/writes/audit/summary", (
+            string name,
+            IDeviceRegistry registry,
+            IWriteAuditStore audit) =>
+        {
+            return registry.TryGet(name, out var device)
+                ? Results.Ok(audit.GetDeviceSummary(device.Name))
+                : Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
         });
 
         group.MapGet("/health/devices", (IDeviceHealthService health) =>
