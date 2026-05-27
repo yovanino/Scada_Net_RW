@@ -118,6 +118,7 @@ public class AspNetCoreRegistrationTests
 
         configuration.AddInMemoryCollection(new Dictionary<string, string?>
         {
+            ["ScadaNet:BackgroundPollingEnabled"] = "false",
             ["ScadaNet:WriteAuditMaxRecords"] = "250",
             ["ScadaNet:Devices:0:Name"] = "line1-plc",
             ["ScadaNet:Devices:0:Driver"] = "ethernetip",
@@ -176,6 +177,7 @@ public class AspNetCoreRegistrationTests
         Assert.False(signal.Writable);
 
         var options = provider.GetRequiredService<ScadaNetOptions>();
+        Assert.False(options.BackgroundPollingEnabled);
         Assert.Equal(250, options.WriteAuditMaxRecords);
         var group = Assert.Single(options.PollingGroups);
         Assert.Equal("line1-fast", group.Name);
@@ -201,6 +203,24 @@ public class AspNetCoreRegistrationTests
         }
 
         Assert.Equal(250, writeAudit.GetRecent(count: 300).Count);
+    }
+
+    [Fact]
+    public void AddScadaNet_can_disable_background_polling_hosted_service()
+    {
+        var services = new ServiceCollection();
+
+        services.AddScadaNet(options =>
+        {
+            options.BackgroundPollingEnabled = false;
+        });
+
+        using var provider = services.BuildServiceProvider();
+
+        var hostedServices = provider.GetServices<IHostedService>().ToArray();
+
+        Assert.DoesNotContain(hostedServices, service => service is ScadaNetPollingHostedService);
+        Assert.IsType<SignalPollingService>(provider.GetRequiredService<ISignalPollingService>());
     }
 
     [Fact]

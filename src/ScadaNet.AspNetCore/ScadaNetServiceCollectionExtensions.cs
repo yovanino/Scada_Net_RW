@@ -54,7 +54,12 @@ public static class ScadaNetServiceCollectionExtensions
             provider.GetRequiredService<IPlcRuntime>(),
             provider.GetRequiredService<IPollingStatusStore>(),
             provider.GetRequiredService<IDeviceSignalResolver>()));
-        services.AddHostedService<ScadaNetPollingHostedService>();
+
+        if (options.BackgroundPollingEnabled)
+        {
+            services.AddHostedService<ScadaNetPollingHostedService>();
+        }
+
         return services;
     }
 }
