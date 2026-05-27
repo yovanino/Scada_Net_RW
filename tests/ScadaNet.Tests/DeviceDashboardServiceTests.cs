@@ -128,6 +128,7 @@ public class DeviceDashboardServiceTests
         Assert.Equal(0, line1Summary.HealthIssueCount);
         Assert.Equal(0, line1Summary.ConnectionIssueCount);
         Assert.Equal(0, line1Summary.PollingIssueCount);
+        Assert.Equal(0, line1Summary.WriteAuditIssueCount);
 
         var line2Summary = summaries[1];
         Assert.Equal(DeviceHealthState.Unknown, line2Summary.HealthState);
@@ -139,6 +140,7 @@ public class DeviceDashboardServiceTests
         Assert.Equal(1, line2Summary.HealthIssueCount);
         Assert.Equal(0, line2Summary.ConnectionIssueCount);
         Assert.Equal(0, line2Summary.PollingIssueCount);
+        Assert.Equal(0, line2Summary.WriteAuditIssueCount);
     }
 
     [Fact]
@@ -298,6 +300,10 @@ public class DeviceDashboardServiceTests
         Assert.Equal(1, status.WriteAudit.WriteCount);
         Assert.Equal(1, status.WriteAudit.FailedWriteCount);
         Assert.Equal("PLC rejected write.", status.WriteAudit.LastError);
+        Assert.Equal(1, status.Summary.WriteAuditIssueCount);
+        Assert.Contains(status.IssueSummaries, summary =>
+            summary.Source == DeviceDashboardIssueSources.WriteAudit &&
+            summary.WarningIssueCount == 1);
     }
 
     [Fact]
@@ -517,6 +523,7 @@ public class DeviceDashboardServiceTests
         Assert.Equal(1, overview.HealthIssueCount);
         Assert.Equal(0, overview.ConnectionIssueCount);
         Assert.Equal(0, overview.PollingIssueCount);
+        Assert.Equal(0, overview.WriteAuditIssueCount);
     }
 
     [Fact]
@@ -564,6 +571,41 @@ public class DeviceDashboardServiceTests
             issue.Code == "polling-group-failed" &&
             issue.Source == DeviceDashboardIssueSources.Polling &&
             issue.Message == "PLC read timeout.");
+    }
+
+    [Fact]
+    public void GetIssues_includes_failed_write_audit_issue()
+    {
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        var registry = new DeviceRegistry([device]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        var writeAudit = new WriteAuditStore();
+        writeAudit.Add(new WriteAuditRecord(
+            0,
+            DateTimeOffset.UtcNow,
+            new SignalRef("line1-plc", "ResetCommand"),
+            true,
+            Succeeded: false,
+            Error: "PLC rejected write."));
+        using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([]), statuses),
+            snapshots,
+            new DeviceSignalSnapshotReader(registry, snapshots),
+            writeAudit);
+
+        var issues = service.GetIssues(new DeviceDashboardIssueFilter(
+            Source: DeviceDashboardIssueSources.WriteAudit));
+
+        var issue = Assert.Single(issues);
+        Assert.Equal("line1-plc", issue.DeviceName);
+        Assert.Equal(DeviceDashboardIssueSeverity.Warning, issue.Severity);
+        Assert.Equal("write-audit-failed", issue.Code);
+        Assert.Equal("PLC rejected write.", issue.Message);
     }
 
     [Fact]

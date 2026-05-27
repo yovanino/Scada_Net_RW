@@ -17,5 +17,6 @@ public sealed record DeviceDashboardSummary(
     int HealthIssueCount,
     int ConnectionIssueCount,
     int PollingIssueCount,
+    int WriteAuditIssueCount,
     DateTimeOffset? LastSnapshotTimestamp,
     DateTimeOffset? LastPollingTimestamp);

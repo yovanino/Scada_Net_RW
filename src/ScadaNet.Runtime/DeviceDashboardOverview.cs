@@ -18,4 +18,5 @@ public sealed record DeviceDashboardOverview(
     int CriticalIssueCount,
     int HealthIssueCount,
     int ConnectionIssueCount,
-    int PollingIssueCount);
+    int PollingIssueCount,
+    int WriteAuditIssueCount);

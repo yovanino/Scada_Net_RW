@@ -150,7 +150,8 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             summaries.Sum(summary => summary.CriticalIssueCount),
             summaries.Sum(summary => summary.HealthIssueCount),
             summaries.Sum(summary => summary.ConnectionIssueCount),
-            summaries.Sum(summary => summary.PollingIssueCount));
+            summaries.Sum(summary => summary.PollingIssueCount),
+            summaries.Sum(summary => summary.WriteAuditIssueCount));
     }
 
     public IReadOnlyList<DeviceDashboardIssue> GetIssues()
@@ -202,7 +203,8 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
                 device.Name,
                 _health.TryGet(device.Name, out var health) ? health : null,
                 TryGetConnectionStatus(device.Name),
-                _pollingGroups.GetForDevice(device.Name))
+                _pollingGroups.GetForDevice(device.Name),
+                _writeAudit.GetDeviceSummary(device.Name))
             .OrderByDescending(issue => issue.Severity)
             .ThenBy(issue => issue.Source, StringComparer.OrdinalIgnoreCase)
             .ThenBy(issue => issue.Code, StringComparer.OrdinalIgnoreCase)
@@ -239,6 +241,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
 
         var connection = TryGetConnectionStatus(device.Name);
         var pollingGroups = _pollingGroups.GetForDevice(device.Name);
+        var writeAudit = _writeAudit.GetDeviceSummary(device.Name);
 
         if (!TryBuildSummary(device, connection, pollingGroups, out var summary))
         {
@@ -250,7 +253,8 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
                 device.Name,
                 _health.TryGet(device.Name, out var health) ? health : null,
                 connection,
-                pollingGroups)
+                pollingGroups,
+                writeAudit)
             .ToArray();
 
         status = new DeviceRuntimeStatus(
@@ -258,7 +262,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             connection,
             pollingGroups,
             BuildIssueSummaries(issues),
-            _writeAudit.GetDeviceSummary(device.Name));
+            writeAudit);
         return true;
     }
 
@@ -316,7 +320,13 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             return false;
         }
 
-        var issues = BuildIssues(device.Name, health, connection, devicePollingGroups).ToArray();
+        var issues = BuildIssues(
+                device.Name,
+                health,
+                connection,
+                devicePollingGroups,
+                _writeAudit.GetDeviceSummary(device.Name))
+            .ToArray();
 
         summary = new DeviceDashboardSummary(
             device.Name,
@@ -337,6 +347,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             CountSource(issues, DeviceDashboardIssueSources.Health),
             CountSource(issues, DeviceDashboardIssueSources.Connection),
             CountSource(issues, DeviceDashboardIssueSources.Polling),
+            CountSource(issues, DeviceDashboardIssueSources.WriteAudit),
             health.LastSnapshotTimestamp,
             health.LastPollingTimestamp);
         return true;
@@ -348,7 +359,8 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             dashboard.Device.Name,
             dashboard.Health,
             dashboard.Connection,
-            dashboard.PollingGroups);
+            dashboard.PollingGroups,
+            writeAudit: null);
     }
 
     private IEnumerable<DeviceDashboardIssue> GetIssues(
@@ -372,14 +384,20 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
                 StringComparison.OrdinalIgnoreCase))
             .ToArray();
 
-        return BuildIssues(device.Name, health, connection, devicePollingGroups);
+        return BuildIssues(
+            device.Name,
+            health,
+            connection,
+            devicePollingGroups,
+            _writeAudit.GetDeviceSummary(device.Name));
     }
 
     private static IEnumerable<DeviceDashboardIssue> BuildIssues(
         string deviceName,
         DeviceHealthSummary? health,
         DeviceConnectionPoolStatus? connection,
-        IReadOnlyList<PollingGroupSummary> pollingGroups)
+        IReadOnlyList<PollingGroupSummary> pollingGroups,
+        WriteAuditSummary? writeAudit)
     {
         if (health is null)
         {
@@ -445,6 +463,18 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
                     "polling-group-no-status",
                     $"Polling group '{group.GroupName}' has no recorded status.");
             }
+        }
+
+        if (writeAudit is { FailedWriteCount: > 0 })
+        {
+            yield return new DeviceDashboardIssue(
+                deviceName,
+                DeviceDashboardIssueSeverity.Warning,
+                DeviceDashboardIssueSources.WriteAudit,
+                "write-audit-failed",
+                string.IsNullOrWhiteSpace(writeAudit.LastError)
+                    ? "Write audit recorded one or more failed writes."
+                    : writeAudit.LastError);
         }
     }
 
