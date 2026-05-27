@@ -5,4 +5,5 @@ public sealed record ProtocolProbeResult(
     int? Port,
     bool Succeeded,
     string? Evidence,
-    string? Error);
+    string? Error,
+    TimeSpan? Duration = null);

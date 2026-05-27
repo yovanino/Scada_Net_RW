@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ScadaNet.Model;
 using ScadaNet.Protocols;
 
@@ -30,6 +31,8 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
 
         foreach (var port in ports)
         {
+            var startedAt = Stopwatch.GetTimestamp();
+
             try
             {
                 await using var client = new EtherNetIpClient(new EtherNetIpClientOptions
@@ -50,7 +53,8 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
                         port,
                         Succeeded: false,
                         Evidence: "Device responded to ListIdentity but returned no identity items.",
-                        Error: null));
+                        Error: null,
+                        Duration: Stopwatch.GetElapsedTime(startedAt)));
                     continue;
                 }
 
@@ -59,7 +63,8 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
                     port,
                     Succeeded: true,
                     Evidence: $"ListIdentity returned '{identity.ProductName}'.",
-                    Error: null));
+                    Error: null,
+                    Duration: Stopwatch.GetElapsedTime(startedAt)));
 
                 return new DeviceDetectionResult(
                     request.Address,
@@ -77,7 +82,8 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
                     port,
                     Succeeded: false,
                     Evidence: null,
-                    Error: ex.Message));
+                    Error: ex.Message,
+                    Duration: Stopwatch.GetElapsedTime(startedAt)));
             }
         }
 
