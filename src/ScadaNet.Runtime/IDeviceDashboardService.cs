@@ -18,6 +18,9 @@ public interface IDeviceDashboardService
 
     IReadOnlyList<DeviceDashboardIssue> GetIssues(DeviceDashboardIssueFilter? filter);
 
+    IReadOnlyList<DeviceDashboardIssueSummary> GetIssueSummaries(
+        DeviceDashboardIssueFilter? filter = null);
+
     bool TryGetIssues(string deviceName, out IReadOnlyList<DeviceDashboardIssue> issues);
 
     bool TryGetIssues(

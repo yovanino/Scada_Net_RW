@@ -153,6 +153,20 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         return ApplyFilter(issues, filter);
     }
 
+    public IReadOnlyList<DeviceDashboardIssueSummary> GetIssueSummaries(
+        DeviceDashboardIssueFilter? filter = null)
+    {
+        return GetIssues(filter)
+            .GroupBy(issue => issue.Source, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(group => new DeviceDashboardIssueSummary(
+                group.Key,
+                group.Count(),
+                group.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Warning),
+                group.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Critical)))
+            .ToArray();
+    }
+
     public bool TryGetIssues(
         string deviceName,
         out IReadOnlyList<DeviceDashboardIssue> issues)

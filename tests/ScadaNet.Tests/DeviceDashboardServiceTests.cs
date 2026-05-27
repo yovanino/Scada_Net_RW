@@ -502,6 +502,49 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public async Task GetIssueSummaries_groups_issues_by_source()
+    {
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        var registry = new DeviceRegistry([device]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        var group = new SignalPollingGroupDefinition
+        {
+            Name = "line1-fast",
+            DeviceName = "line1-plc"
+        };
+        statuses.MarkFailure(
+            group,
+            TimeSpan.FromMilliseconds(25),
+            new InvalidOperationException("PLC read timeout."));
+        await using var connections = new DeviceConnectionPool(new FailingConnectionFactory());
+        await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await connections.RentAsync("line1-plc"));
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([group]), statuses),
+            snapshots,
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var summaries = service.GetIssueSummaries();
+
+        Assert.Contains(summaries, summary =>
+            summary.Source == DeviceDashboardIssueSources.Health &&
+            summary.IssueCount == 1 &&
+            summary.CriticalIssueCount == 1);
+        Assert.Contains(summaries, summary =>
+            summary.Source == DeviceDashboardIssueSources.Connection &&
+            summary.IssueCount == 1 &&
+            summary.CriticalIssueCount == 1);
+        Assert.Contains(summaries, summary =>
+            summary.Source == DeviceDashboardIssueSources.Polling &&
+            summary.IssueCount == 1 &&
+            summary.CriticalIssueCount == 1);
+    }
+
+    [Fact]
     public async Task TryGetIssues_returns_issues_for_one_device()
     {
         var line1 = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
