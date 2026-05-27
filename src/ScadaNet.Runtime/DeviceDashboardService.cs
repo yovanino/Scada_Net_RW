@@ -53,10 +53,12 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             .ToArray();
     }
 
-    public IReadOnlyList<DeviceDashboardSummary> GetAttentionSummaries(int? count = null)
+    public IReadOnlyList<DeviceDashboardSummary> GetAttentionSummaries(
+        int? count = null,
+        DeviceDashboardIssueSeverity? minimumSeverity = null)
     {
         var summaries = GetSummaries()
-            .Where(summary => summary.IssueCount > 0)
+            .Where(summary => HasMinimumSeverity(summary, minimumSeverity))
             .OrderByDescending(summary => summary.CriticalIssueCount)
             .ThenByDescending(summary => summary.WarningIssueCount)
             .ThenBy(summary => summary.DeviceName, StringComparer.OrdinalIgnoreCase)
@@ -65,6 +67,20 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         return count.HasValue
             ? summaries.Take(Math.Max(0, count.Value)).ToArray()
             : summaries;
+    }
+
+    private static bool HasMinimumSeverity(
+        DeviceDashboardSummary summary,
+        DeviceDashboardIssueSeverity? minimumSeverity)
+    {
+        return minimumSeverity switch
+        {
+            DeviceDashboardIssueSeverity.Critical => summary.CriticalIssueCount > 0,
+            DeviceDashboardIssueSeverity.Warning => summary.WarningIssueCount > 0 ||
+                summary.CriticalIssueCount > 0,
+            DeviceDashboardIssueSeverity.Info => summary.IssueCount > 0,
+            _ => summary.IssueCount > 0
+        };
     }
 
     public bool TryGetSummary(

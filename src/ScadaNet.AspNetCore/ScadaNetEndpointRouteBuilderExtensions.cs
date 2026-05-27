@@ -31,9 +31,10 @@ public static class ScadaNetEndpointRouteBuilderExtensions
 
         group.MapGet("/devices/dashboard/attention", (
             int? count,
+            DeviceDashboardIssueSeverity? minimumSeverity,
             IDeviceDashboardService dashboards) =>
         {
-            return Results.Ok(dashboards.GetAttentionSummaries(count));
+            return Results.Ok(dashboards.GetAttentionSummaries(count, minimumSeverity));
         });
 
         group.MapGet("/devices/dashboard/overview", (IDeviceDashboardService dashboards) =>

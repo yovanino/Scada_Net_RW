@@ -269,6 +269,40 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public void GetAttentionSummaries_can_filter_by_minimum_severity()
+    {
+        var line1 = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        var line2 = new DeviceDefinition("line2-plc", "fake", "127.0.0.2");
+        var registry = new DeviceRegistry([line2, line1]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        var failedGroup = new SignalPollingGroupDefinition
+        {
+            Name = "line1-fast",
+            DeviceName = "line1-plc"
+        };
+        statuses.MarkFailure(
+            failedGroup,
+            TimeSpan.FromMilliseconds(25),
+            new InvalidOperationException("Line 1 timeout."));
+        using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([failedGroup]), statuses),
+            snapshots,
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var attention = service.GetAttentionSummaries(
+            minimumSeverity: DeviceDashboardIssueSeverity.Critical);
+
+        var summary = Assert.Single(attention);
+        Assert.Equal("line1-plc", summary.DeviceName);
+        Assert.True(summary.CriticalIssueCount > 0);
+    }
+
+    [Fact]
     public void GetSummaries_and_overview_do_not_build_detailed_signal_snapshots()
     {
         var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
