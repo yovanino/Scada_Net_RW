@@ -6,7 +6,7 @@ public interface IDeviceDashboardService
 
     IReadOnlyList<DeviceDashboardSummary> GetSummaries();
 
-    IReadOnlyList<DeviceDashboardSummary> GetAttentionSummaries();
+    IReadOnlyList<DeviceDashboardSummary> GetAttentionSummaries(int? count = null);
 
     bool TryGetSummary(string deviceName, out DeviceDashboardSummary summary);
 

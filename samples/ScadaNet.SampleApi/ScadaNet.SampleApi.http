@@ -25,6 +25,11 @@ Accept: application/json
 
 ###
 
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/dashboard/attention?count=5
+Accept: application/json
+
+###
+
 GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/dashboard/overview
 Accept: application/json
 

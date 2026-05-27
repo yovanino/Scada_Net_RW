@@ -228,6 +228,47 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public void GetAttentionSummaries_can_limit_result_count()
+    {
+        var line1 = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        var line2 = new DeviceDefinition("line2-plc", "fake", "127.0.0.2");
+        var registry = new DeviceRegistry([line2, line1]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        var group1 = new SignalPollingGroupDefinition
+        {
+            Name = "line1-fast",
+            DeviceName = "line1-plc"
+        };
+        var group2 = new SignalPollingGroupDefinition
+        {
+            Name = "line2-fast",
+            DeviceName = "line2-plc"
+        };
+        statuses.MarkFailure(
+            group1,
+            TimeSpan.FromMilliseconds(25),
+            new InvalidOperationException("Line 1 timeout."));
+        statuses.MarkFailure(
+            group2,
+            TimeSpan.FromMilliseconds(25),
+            new InvalidOperationException("Line 2 timeout."));
+        using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([group1, group2]), statuses),
+            snapshots,
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var attention = service.GetAttentionSummaries(count: 1);
+
+        var summary = Assert.Single(attention);
+        Assert.Equal("line1-plc", summary.DeviceName);
+    }
+
+    [Fact]
     public void GetSummaries_and_overview_do_not_build_detailed_signal_snapshots()
     {
         var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");

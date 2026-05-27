@@ -53,14 +53,18 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             .ToArray();
     }
 
-    public IReadOnlyList<DeviceDashboardSummary> GetAttentionSummaries()
+    public IReadOnlyList<DeviceDashboardSummary> GetAttentionSummaries(int? count = null)
     {
-        return GetSummaries()
+        var summaries = GetSummaries()
             .Where(summary => summary.IssueCount > 0)
             .OrderByDescending(summary => summary.CriticalIssueCount)
             .ThenByDescending(summary => summary.WarningIssueCount)
             .ThenBy(summary => summary.DeviceName, StringComparer.OrdinalIgnoreCase)
             .ToArray();
+
+        return count.HasValue
+            ? summaries.Take(Math.Max(0, count.Value)).ToArray()
+            : summaries;
     }
 
     public bool TryGetSummary(
