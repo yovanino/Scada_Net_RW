@@ -53,6 +53,23 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             .ToArray();
     }
 
+    public bool TryGetSummary(
+        string deviceName,
+        out DeviceDashboardSummary summary)
+    {
+        if (!_devices.TryGet(deviceName, out var device))
+        {
+            summary = default!;
+            return false;
+        }
+
+        return TryBuildSummary(
+            device,
+            _connections.GetStatus(),
+            _pollingGroups.GetAll(),
+            out summary);
+    }
+
     public DeviceDashboardOverview GetOverview()
     {
         var summaries = GetSummaries();

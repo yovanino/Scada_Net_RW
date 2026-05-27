@@ -136,6 +136,54 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public async Task TryGetSummary_returns_lightweight_status_for_one_device()
+    {
+        var line1 = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        line1.Signals.Add(new DeviceSignalDefinition
+        {
+            Name = "counter",
+            Address = "Counter"
+        });
+        var line2 = new DeviceDefinition("line2-plc", "fake", "127.0.0.2");
+        var registry = new DeviceRegistry([line1, line2]);
+        var snapshots = new SignalSnapshotStore();
+        snapshots.Update(new SignalValue(
+            new SignalRef("line1-plc", "Counter"),
+            123,
+            SignalQuality.Good,
+            DateTimeOffset.UtcNow));
+        var statuses = new PollingStatusStore();
+        var group = new SignalPollingGroupDefinition
+        {
+            Name = "line1-fast",
+            DeviceName = "line1-plc"
+        };
+        statuses.MarkSuccess(group, TimeSpan.FromMilliseconds(10), signalCount: 1);
+        await using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        await using (await connections.RentAsync("line1-plc"))
+        {
+        }
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([group]), statuses),
+            snapshots,
+            new ThrowingSignalSnapshotReader());
+
+        var found = service.TryGetSummary("LINE1-PLC", out var summary);
+
+        Assert.True(found);
+        Assert.Equal("line1-plc", summary.DeviceName);
+        Assert.Equal(DeviceHealthState.Healthy, summary.HealthState);
+        Assert.True(summary.HasConnection);
+        Assert.Equal(1, summary.PollingGroupCount);
+        Assert.Equal(1, summary.SignalCount);
+        Assert.Equal(1, summary.SignalWithValueCount);
+        Assert.Equal(0, summary.IssueCount);
+    }
+
+    [Fact]
     public void GetSummaries_and_overview_do_not_build_detailed_signal_snapshots()
     {
         var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
@@ -361,6 +409,26 @@ public class DeviceDashboardServiceTests
 
         Assert.False(found);
         Assert.Empty(issues);
+    }
+
+    [Fact]
+    public void TryGetSummary_returns_false_for_unknown_device()
+    {
+        var registry = new DeviceRegistry([]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([]), statuses),
+            snapshots,
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var found = service.TryGetSummary("missing", out _);
+
+        Assert.False(found);
     }
 
     private sealed class FakeConnectionFactory : IDeviceConnectionFactory
