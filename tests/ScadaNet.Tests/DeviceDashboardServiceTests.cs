@@ -129,6 +129,9 @@ public class DeviceDashboardServiceTests
         Assert.Equal(1, overview.SignalWithValueCount);
         Assert.Equal(1, overview.WritableSignalCount);
         Assert.Equal(1, overview.ArraySignalCount);
+        Assert.Equal(1, overview.IssueCount);
+        Assert.Equal(1, overview.WarningIssueCount);
+        Assert.Equal(0, overview.CriticalIssueCount);
     }
 
     [Fact]

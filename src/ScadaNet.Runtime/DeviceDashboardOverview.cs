@@ -12,4 +12,7 @@ public sealed record DeviceDashboardOverview(
     int SignalCount,
     int SignalWithValueCount,
     int WritableSignalCount,
-    int ArraySignalCount);
+    int ArraySignalCount,
+    int IssueCount,
+    int WarningIssueCount,
+    int CriticalIssueCount);

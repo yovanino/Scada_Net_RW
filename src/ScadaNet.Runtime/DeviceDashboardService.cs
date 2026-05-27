@@ -46,6 +46,9 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         var signals = dashboards
             .SelectMany(dashboard => dashboard.Signals)
             .ToArray();
+        var issues = dashboards
+            .SelectMany(GetIssues)
+            .ToArray();
 
         return new DeviceDashboardOverview(
             dashboards.Count,
@@ -59,7 +62,10 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             signals.Length,
             signals.Count(signal => signal.HasValue),
             signals.Count(signal => signal.Writable),
-            signals.Count(signal => signal.IsArray));
+            signals.Count(signal => signal.IsArray),
+            issues.Length,
+            issues.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Warning),
+            issues.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Critical));
     }
 
     public IReadOnlyList<DeviceDashboardIssue> GetIssues()
