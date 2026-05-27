@@ -156,15 +156,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
     public IReadOnlyList<DeviceDashboardIssueSummary> GetIssueSummaries(
         DeviceDashboardIssueFilter? filter = null)
     {
-        return GetIssues(filter)
-            .GroupBy(issue => issue.Source, StringComparer.OrdinalIgnoreCase)
-            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
-            .Select(group => new DeviceDashboardIssueSummary(
-                group.Key,
-                group.Count(),
-                group.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Warning),
-                group.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Critical)))
-            .ToArray();
+        return BuildIssueSummaries(GetIssues(filter));
     }
 
     public bool TryGetIssues(
@@ -192,6 +184,21 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             .ToArray();
 
         issues = ApplyFilter(issues, filter);
+        return true;
+    }
+
+    public bool TryGetIssueSummaries(
+        string deviceName,
+        DeviceDashboardIssueFilter? filter,
+        out IReadOnlyList<DeviceDashboardIssueSummary> summaries)
+    {
+        if (!TryGetIssues(deviceName, filter, out var issues))
+        {
+            summaries = [];
+            return false;
+        }
+
+        summaries = BuildIssueSummaries(issues);
         return true;
     }
 
@@ -412,6 +419,20 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         }
 
         return filtered.ToArray();
+    }
+
+    private static IReadOnlyList<DeviceDashboardIssueSummary> BuildIssueSummaries(
+        IReadOnlyList<DeviceDashboardIssue> issues)
+    {
+        return issues
+            .GroupBy(issue => issue.Source, StringComparer.OrdinalIgnoreCase)
+            .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(group => new DeviceDashboardIssueSummary(
+                group.Key,
+                group.Count(),
+                group.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Warning),
+                group.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Critical)))
+            .ToArray();
     }
 
     private static int CountSource(

@@ -623,6 +623,59 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public void TryGetIssueSummaries_groups_issues_for_one_device()
+    {
+        var line1 = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        var line2 = new DeviceDefinition("line2-plc", "fake", "127.0.0.2");
+        var registry = new DeviceRegistry([line1, line2]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        var group1 = new SignalPollingGroupDefinition
+        {
+            Name = "line1-fast",
+            DeviceName = "line1-plc"
+        };
+        var group2 = new SignalPollingGroupDefinition
+        {
+            Name = "line2-fast",
+            DeviceName = "line2-plc"
+        };
+        statuses.MarkFailure(
+            group1,
+            TimeSpan.FromMilliseconds(25),
+            new InvalidOperationException("Line 1 timeout."));
+        statuses.MarkFailure(
+            group2,
+            TimeSpan.FromMilliseconds(25),
+            new InvalidOperationException("Line 2 timeout."));
+        using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([group1, group2]), statuses),
+            snapshots,
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var found = service.TryGetIssueSummaries(
+            "LINE1-PLC",
+            filter: null,
+            out var summaries);
+
+        Assert.True(found);
+        Assert.Contains(summaries, summary =>
+            summary.Source == DeviceDashboardIssueSources.Health &&
+            summary.IssueCount == 1 &&
+            summary.CriticalIssueCount == 1);
+        Assert.Contains(summaries, summary =>
+            summary.Source == DeviceDashboardIssueSources.Polling &&
+            summary.IssueCount == 1 &&
+            summary.CriticalIssueCount == 1);
+        Assert.DoesNotContain(summaries, summary =>
+            summary.Source == DeviceDashboardIssueSources.Connection);
+    }
+
+    [Fact]
     public void TryGet_returns_false_for_unknown_device()
     {
         var registry = new DeviceRegistry([]);
@@ -661,6 +714,30 @@ public class DeviceDashboardServiceTests
 
         Assert.False(found);
         Assert.Empty(issues);
+    }
+
+    [Fact]
+    public void TryGetIssueSummaries_returns_false_for_unknown_device()
+    {
+        var registry = new DeviceRegistry([]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([]), statuses),
+            snapshots,
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var found = service.TryGetIssueSummaries(
+            "missing",
+            filter: null,
+            out var summaries);
+
+        Assert.False(found);
+        Assert.Empty(summaries);
     }
 
     [Fact]

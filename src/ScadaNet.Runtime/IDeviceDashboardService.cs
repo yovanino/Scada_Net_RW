@@ -28,5 +28,10 @@ public interface IDeviceDashboardService
         DeviceDashboardIssueFilter? filter,
         out IReadOnlyList<DeviceDashboardIssue> issues);
 
+    bool TryGetIssueSummaries(
+        string deviceName,
+        DeviceDashboardIssueFilter? filter,
+        out IReadOnlyList<DeviceDashboardIssueSummary> summaries);
+
     bool TryGet(string deviceName, out DeviceDashboard dashboard);
 }

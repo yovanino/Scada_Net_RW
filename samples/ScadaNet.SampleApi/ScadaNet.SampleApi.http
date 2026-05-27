@@ -85,6 +85,16 @@ Accept: application/json
 
 ###
 
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/dashboard/issues/summary
+Accept: application/json
+
+###
+
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/dashboard/issues/summary?minimumSeverity=Critical
+Accept: application/json
+
+###
+
 GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/signals/read?address=ProductionCounter
 Accept: application/json
 
