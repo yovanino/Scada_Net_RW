@@ -181,6 +181,48 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public async Task TryGetIssues_returns_issues_for_one_device()
+    {
+        var line1 = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        var line2 = new DeviceDefinition("line2-plc", "fake", "127.0.0.2");
+        var registry = new DeviceRegistry([line1, line2]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        var group1 = new SignalPollingGroupDefinition
+        {
+            Name = "line1-fast",
+            DeviceName = "line1-plc"
+        };
+        var group2 = new SignalPollingGroupDefinition
+        {
+            Name = "line2-fast",
+            DeviceName = "line2-plc"
+        };
+        statuses.MarkFailure(
+            group1,
+            TimeSpan.FromMilliseconds(25),
+            new InvalidOperationException("Line 1 timeout."));
+        statuses.MarkFailure(
+            group2,
+            TimeSpan.FromMilliseconds(25),
+            new InvalidOperationException("Line 2 timeout."));
+        await using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([group1, group2]), statuses),
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var found = service.TryGetIssues("LINE1-PLC", out var issues);
+
+        Assert.True(found);
+        Assert.All(issues, issue => Assert.Equal("line1-plc", issue.DeviceName));
+        Assert.Contains(issues, issue => issue.Message.Contains("Line 1 timeout."));
+        Assert.DoesNotContain(issues, issue => issue.Message.Contains("Line 2 timeout."));
+    }
+
+    [Fact]
     public void TryGet_returns_false_for_unknown_device()
     {
         var registry = new DeviceRegistry([]);
@@ -197,6 +239,26 @@ public class DeviceDashboardServiceTests
         var found = service.TryGet("missing", out _);
 
         Assert.False(found);
+    }
+
+    [Fact]
+    public void TryGetIssues_returns_false_for_unknown_device()
+    {
+        var registry = new DeviceRegistry([]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([]), statuses),
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var found = service.TryGetIssues("missing", out var issues);
+
+        Assert.False(found);
+        Assert.Empty(issues);
     }
 
     private sealed class FakeConnectionFactory : IDeviceConnectionFactory

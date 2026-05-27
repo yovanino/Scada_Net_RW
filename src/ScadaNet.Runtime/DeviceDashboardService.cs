@@ -79,6 +79,24 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             .ToArray();
     }
 
+    public bool TryGetIssues(
+        string deviceName,
+        out IReadOnlyList<DeviceDashboardIssue> issues)
+    {
+        if (!TryGet(deviceName, out var dashboard))
+        {
+            issues = [];
+            return false;
+        }
+
+        issues = GetIssues(dashboard)
+            .OrderByDescending(issue => issue.Severity)
+            .ThenBy(issue => issue.Source, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(issue => issue.Code, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        return true;
+    }
+
     public bool TryGet(string deviceName, out DeviceDashboard dashboard)
     {
         if (!_devices.TryGet(deviceName, out var device) ||

@@ -8,5 +8,7 @@ public interface IDeviceDashboardService
 
     IReadOnlyList<DeviceDashboardIssue> GetIssues();
 
+    bool TryGetIssues(string deviceName, out IReadOnlyList<DeviceDashboardIssue> issues);
+
     bool TryGet(string deviceName, out DeviceDashboard dashboard);
 }
