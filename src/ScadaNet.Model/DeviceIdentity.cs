@@ -5,4 +5,5 @@ public sealed record DeviceIdentity(
     string? ProductName,
     string? ProductCode,
     string? Revision,
-    string? SerialNumber);
+    string? SerialNumber,
+    string? VendorCode = null);

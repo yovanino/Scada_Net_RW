@@ -94,10 +94,20 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
     private static DeviceIdentity ToDeviceIdentity(EtherNetIpIdentity identity)
     {
         return new DeviceIdentity(
-            VendorName: identity.VendorId.ToString(),
+            VendorName: GetVendorName(identity.VendorId),
             ProductName: identity.ProductName,
             ProductCode: identity.ProductCode.ToString(),
             Revision: $"{identity.RevisionMajor}.{identity.RevisionMinor}",
-            SerialNumber: identity.SerialNumber.ToString("X8"));
+            SerialNumber: identity.SerialNumber.ToString("X8"),
+            VendorCode: identity.VendorId.ToString());
+    }
+
+    private static string GetVendorName(ushort vendorId)
+    {
+        return vendorId switch
+        {
+            1 => "Rockwell Automation",
+            _ => vendorId.ToString()
+        };
     }
 }
