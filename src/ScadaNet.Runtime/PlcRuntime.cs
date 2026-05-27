@@ -48,23 +48,37 @@ public sealed class PlcRuntime : IPlcRuntime
             return [];
         }
 
-        var values = new List<SignalValue>(signals.Count);
+        var values = new SignalValue?[signals.Count];
 
-        foreach (var group in signals.GroupBy(signal => signal.DeviceName))
+        foreach (var group in signals
+            .Select((signal, index) => new IndexedSignal(signal, index))
+            .GroupBy(item => item.Signal.DeviceName))
         {
+            var groupSignals = group.ToArray();
+
             await using var lease = await _connections
                 .RentAsync(group.Key, cancellationToken)
                 .ConfigureAwait(false);
 
             var groupValues = await lease.Connection
-                .ReadManyAsync(group.ToArray(), cancellationToken)
+                .ReadManyAsync(groupSignals.Select(item => item.Signal).ToArray(), cancellationToken)
                 .ConfigureAwait(false);
 
+            if (groupValues.Count != groupSignals.Length)
+            {
+                throw new InvalidOperationException(
+                    $"Device '{group.Key}' returned {groupValues.Count} values for {groupSignals.Length} requested signals.");
+            }
+
             _snapshots.UpdateMany(groupValues);
-            values.AddRange(groupValues);
+
+            for (var index = 0; index < groupValues.Count; index++)
+            {
+                values[groupSignals[index].Index] = groupValues[index];
+            }
         }
 
-        return values;
+        return values.Select(value => value!).ToArray();
     }
 
     public async ValueTask<SignalValue> ReadArrayAsync(
@@ -228,4 +242,6 @@ public sealed class PlcRuntime : IPlcRuntime
             succeeded,
             error));
     }
+
+    private sealed record IndexedSignal(SignalRef Signal, int Index);
 }

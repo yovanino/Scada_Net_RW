@@ -97,6 +97,47 @@ public class PlcRuntimeTests
     }
 
     [Fact]
+    public async Task ReadManyAsync_preserves_requested_signal_order_across_devices()
+    {
+        var connection = new FakeConnection();
+        var registry = new DeviceRegistry([
+            new DeviceDefinition("line1-plc", "fake", "127.0.0.1"),
+            new DeviceDefinition("line2-plc", "fake", "127.0.0.2")
+        ]);
+        var pool = new FakeConnectionPool(connection);
+        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore(), new WriteAuditStore());
+        var first = new SignalRef("line1-plc", "A");
+        var second = new SignalRef("line2-plc", "B");
+        var third = new SignalRef("line1-plc", "C");
+
+        var values = await runtime.ReadManyAsync([first, second, third]);
+
+        Assert.Equal([first, second, third], values.Select(value => value.Ref));
+    }
+
+    [Fact]
+    public async Task ReadManyAsync_rejects_driver_response_count_mismatch()
+    {
+        var connection = new FakeConnection
+        {
+            DropLastReadManyValue = true
+        };
+        var registry = new DeviceRegistry([
+            new DeviceDefinition("line1-plc", "fake", "127.0.0.1")
+        ]);
+        var pool = new FakeConnectionPool(connection);
+        var runtime = new PlcRuntime(registry, pool, new SignalSnapshotStore(), new WriteAuditStore());
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(async () =>
+            await runtime.ReadManyAsync([
+                new SignalRef("line1-plc", "A"),
+                new SignalRef("line1-plc", "B")
+            ]));
+
+        Assert.Contains("returned 1 values for 2 requested signals", error.Message);
+    }
+
+    [Fact]
     public async Task WriteArrayAsync_uses_array_connection_and_audits_write()
     {
         var connection = new FakeArrayConnection();
@@ -347,6 +388,7 @@ public class PlcRuntimeTests
         public DeviceIdentity Identity { get; } = new("Test", "Fake", null, null, null);
         public DeviceCapabilities Capabilities => DeviceCapabilities.Read | DeviceCapabilities.Write;
         public bool WasDisposed { get; private set; }
+        public bool DropLastReadManyValue { get; init; }
         public SignalRef? LastWrittenSignal { get; private set; }
         public object? LastWrittenValue { get; private set; }
 
@@ -371,7 +413,7 @@ public class PlcRuntimeTests
             IReadOnlyList<SignalRef> signals,
             CancellationToken cancellationToken = default)
         {
-            IReadOnlyList<SignalValue> values = signals
+            var values = signals
                 .Select(signal => new SignalValue(
                     signal,
                     123,
@@ -379,7 +421,10 @@ public class PlcRuntimeTests
                     DateTimeOffset.UtcNow))
                 .ToArray();
 
-            return ValueTask.FromResult(values);
+            return ValueTask.FromResult<IReadOnlyList<SignalValue>>(
+                DropLastReadManyValue
+                    ? values.SkipLast(1).ToArray()
+                    : values);
         }
 
         public ValueTask WriteAsync(
