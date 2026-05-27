@@ -319,26 +319,6 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
 
     private bool TryBuildSummary(
         DeviceDefinition device,
-        IReadOnlyList<DeviceConnectionPoolStatus> connections,
-        IReadOnlyList<PollingGroupSummary> pollingGroups,
-        out DeviceDashboardSummary summary)
-    {
-        var connection = connections.FirstOrDefault(status => string.Equals(
-            status.DeviceName,
-            device.Name,
-            StringComparison.OrdinalIgnoreCase));
-        var devicePollingGroups = pollingGroups
-            .Where(group => string.Equals(
-                group.DeviceName,
-                device.Name,
-                StringComparison.OrdinalIgnoreCase))
-            .ToArray();
-
-        return TryBuildSummary(device, connection, devicePollingGroups, out summary);
-    }
-
-    private bool TryBuildSummary(
-        DeviceDefinition device,
         DeviceConnectionPoolStatus? connection,
         IReadOnlyList<PollingGroupSummary> devicePollingGroups,
         out DeviceDashboardSummary summary)
@@ -359,6 +339,19 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
 
         summary = BuildSummary(device, health, connection, devicePollingGroups, issues);
         return true;
+    }
+
+    private bool TryBuildSummary(
+        DeviceDefinition device,
+        DashboardStatusIndexes indexes,
+        out DeviceDashboardSummary summary)
+    {
+        var connection = indexes.ConnectionsByDevice.TryGetValue(device.Name, out var statusMatch)
+            ? statusMatch
+            : null;
+        var devicePollingGroups = indexes.PollingGroupsByDevice[device.Name].ToArray();
+
+        return TryBuildSummary(device, connection, devicePollingGroups, out summary);
     }
 
     private DeviceDashboardSummary BuildSummary(
@@ -397,9 +390,11 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         IReadOnlyList<DeviceConnectionPoolStatus> connections,
         IReadOnlyList<PollingGroupSummary> pollingGroups)
     {
+        var indexes = BuildDashboardStatusIndexes(connections, pollingGroups);
+
         return devices
             .OrderBy(device => device.Name, StringComparer.OrdinalIgnoreCase)
-            .Select(device => TryBuildSummary(device, connections, pollingGroups, out var summary)
+            .Select(device => TryBuildSummary(device, indexes, out var summary)
                 ? summary
                 : null)
             .Where(summary => summary is not null)
@@ -412,7 +407,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         IReadOnlyList<DeviceConnectionPoolStatus> connections,
         IReadOnlyList<PollingGroupSummary> pollingGroups)
     {
-        var indexes = BuildRuntimeStatusIndexes(connections, pollingGroups);
+        var indexes = BuildDashboardStatusIndexes(connections, pollingGroups);
 
         return devices
             .OrderBy(device => device.Name, StringComparer.OrdinalIgnoreCase)
@@ -429,7 +424,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
 
     private bool TryBuildRuntimeDeviceStatus(
         DeviceDefinition device,
-        RuntimeStatusIndexes indexes,
+        DashboardStatusIndexes indexes,
         out RuntimeDeviceStatusParts status)
     {
         if (!_health.TryGet(device.Name, out var health))
@@ -457,7 +452,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         return true;
     }
 
-    private static RuntimeStatusIndexes BuildRuntimeStatusIndexes(
+    private static DashboardStatusIndexes BuildDashboardStatusIndexes(
         IReadOnlyList<DeviceConnectionPoolStatus> connections,
         IReadOnlyList<PollingGroupSummary> pollingGroups)
     {
@@ -471,7 +466,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             group => group.DeviceName,
             StringComparer.OrdinalIgnoreCase);
 
-        return new RuntimeStatusIndexes(connectionsByDevice, pollingGroupsByDevice);
+        return new DashboardStatusIndexes(connectionsByDevice, pollingGroupsByDevice);
     }
 
     private IReadOnlyList<DeviceDashboardIssue> BuildAllIssues(
@@ -479,7 +474,9 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         IReadOnlyList<DeviceConnectionPoolStatus> connections,
         IReadOnlyList<PollingGroupSummary> pollingGroups)
     {
-        return OrderIssues(devices.SelectMany(device => GetIssues(device, connections, pollingGroups)));
+        var indexes = BuildDashboardStatusIndexes(connections, pollingGroups);
+
+        return OrderIssues(devices.SelectMany(device => GetIssues(device, indexes)));
     }
 
     private static IEnumerable<DeviceDashboardIssue> GetIssues(DeviceDashboard dashboard)
@@ -494,24 +491,17 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
 
     private IEnumerable<DeviceDashboardIssue> GetIssues(
         DeviceDefinition device,
-        IReadOnlyList<DeviceConnectionPoolStatus> connections,
-        IReadOnlyList<PollingGroupSummary> pollingGroups)
+        DashboardStatusIndexes indexes)
     {
         if (!_health.TryGet(device.Name, out var health))
         {
             return [];
         }
 
-        var connection = connections.FirstOrDefault(status => string.Equals(
-                status.DeviceName,
-                device.Name,
-                StringComparison.OrdinalIgnoreCase));
-        var devicePollingGroups = pollingGroups
-            .Where(group => string.Equals(
-                group.DeviceName,
-                device.Name,
-                StringComparison.OrdinalIgnoreCase))
-            .ToArray();
+        var connection = indexes.ConnectionsByDevice.TryGetValue(device.Name, out var statusMatch)
+            ? statusMatch
+            : null;
+        var devicePollingGroups = indexes.PollingGroupsByDevice[device.Name].ToArray();
 
         return BuildIssues(
             device.Name,
@@ -692,7 +682,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
         DeviceDashboardSummary Summary,
         IReadOnlyList<DeviceDashboardIssue> Issues);
 
-    private sealed record RuntimeStatusIndexes(
+    private sealed record DashboardStatusIndexes(
         IReadOnlyDictionary<string, DeviceConnectionPoolStatus> ConnectionsByDevice,
         ILookup<string, PollingGroupSummary> PollingGroupsByDevice);
 }
