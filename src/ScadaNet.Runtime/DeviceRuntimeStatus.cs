@@ -5,4 +5,5 @@ public sealed record DeviceRuntimeStatus(
     DeviceConnectionPoolStatus? Connection,
     IReadOnlyList<PollingGroupSummary> PollingGroups,
     IReadOnlyList<DeviceDashboardIssueSummary> IssueSummaries,
-    WriteAuditSummary WriteAudit);
+    WriteAuditSummary WriteAudit,
+    DateTimeOffset GeneratedAt);

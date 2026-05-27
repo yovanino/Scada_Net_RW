@@ -163,7 +163,8 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             GetAttentionSummaries(attentionCount, minimumSeverity),
             GetIssueSummaries(new DeviceDashboardIssueFilter(
                 MinimumSeverity: minimumSeverity)),
-            _writeAudit.GetSummary());
+            _writeAudit.GetSummary(),
+            DateTimeOffset.UtcNow);
     }
 
     public IReadOnlyList<DeviceDashboardIssue> GetIssues()
@@ -274,7 +275,8 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             connection,
             pollingGroups,
             BuildIssueSummaries(issues),
-            writeAudit);
+            writeAudit,
+            DateTimeOffset.UtcNow);
         return true;
     }
 

@@ -282,7 +282,9 @@ public class DeviceDashboardServiceTests
             new ThrowingSignalSnapshotReader(),
             writeAudit);
 
+        var before = DateTimeOffset.UtcNow;
         var found = service.TryGetRuntimeStatus("LINE1-PLC", out var status);
+        var after = DateTimeOffset.UtcNow;
 
         Assert.True(found);
         Assert.Equal("line1-plc", status.Summary.DeviceName);
@@ -304,6 +306,7 @@ public class DeviceDashboardServiceTests
         Assert.Contains(status.IssueSummaries, summary =>
             summary.Source == DeviceDashboardIssueSources.WriteAudit &&
             summary.WarningIssueCount == 1);
+        Assert.InRange(status.GeneratedAt, before, after);
     }
 
     [Fact]
@@ -460,9 +463,11 @@ public class DeviceDashboardServiceTests
             new DeviceSignalSnapshotReader(registry, snapshots),
             writeAudit);
 
+        var before = DateTimeOffset.UtcNow;
         var status = service.GetRuntimeStatus(
             attentionCount: 1,
             minimumSeverity: DeviceDashboardIssueSeverity.Warning);
+        var after = DateTimeOffset.UtcNow;
 
         Assert.Equal(2, status.Overview.DeviceCount);
         Assert.True(status.Overview.IssueCount > 0);
@@ -474,6 +479,7 @@ public class DeviceDashboardServiceTests
             summary.WarningIssueCount == 1);
         Assert.Equal(1, status.WriteAudit.FailedWriteCount);
         Assert.Equal("PLC rejected write.", status.WriteAudit.LastError);
+        Assert.InRange(status.GeneratedAt, before, after);
     }
 
     [Fact]
