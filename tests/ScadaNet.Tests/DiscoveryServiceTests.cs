@@ -58,6 +58,29 @@ public class DiscoveryServiceTests
         Assert.Equal(2, result.Probes.Count);
     }
 
+    [Fact]
+    public async Task DetectAsync_keeps_successful_detection_when_driver_probe_fails()
+    {
+        var failing = new ThrowingDriver("FailingProtocol");
+        var successful = new FakeDriver("WorkingProtocol", 0.8);
+        var service = new DiscoveryService([failing, successful]);
+
+        var result = await service.DetectAsync(new ProbeRequest(
+            "192.168.0.10",
+            [44818],
+            TimeSpan.FromSeconds(1)));
+
+        Assert.Equal("WorkingProtocol", result.RecommendedDriver);
+        Assert.Equal(0.8, result.Confidence);
+        Assert.Contains(result.Probes, probe =>
+            probe.Protocol == "FailingProtocol" &&
+            !probe.Succeeded &&
+            probe.Error == "probe failed");
+        Assert.Contains(result.Probes, probe =>
+            probe.Protocol == "WorkingProtocol" &&
+            probe.Succeeded);
+    }
+
     private sealed class FakeDriver : IDeviceDriver
     {
         private readonly double _confidence;
@@ -131,6 +154,30 @@ public class DiscoveryServiceTests
                 0.5,
                 new DeviceIdentity(DriverName, DriverName, null, null, null),
                 [DriverName]);
+        }
+    }
+
+    private sealed class ThrowingDriver : IDeviceDriver
+    {
+        public ThrowingDriver(string driverName)
+        {
+            DriverName = driverName;
+        }
+
+        public string DriverName { get; }
+
+        public ValueTask<IDeviceConnection> ConnectAsync(
+            DeviceConnectionOptions options,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask<DeviceDetectionResult> ProbeAsync(
+            ProbeRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("probe failed");
         }
     }
 }

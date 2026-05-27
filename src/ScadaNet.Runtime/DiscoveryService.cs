@@ -21,7 +21,7 @@ public sealed class DiscoveryService : IDiscoveryService
         }
 
         var results = await Task.WhenAll(_drivers
-                .Select(driver => driver.ProbeAsync(request, cancellationToken).AsTask()))
+                .Select(driver => ProbeDriverAsync(driver, request, cancellationToken)))
             .ConfigureAwait(false);
 
         var probes = results.SelectMany(result => result.Probes).ToArray();
@@ -36,6 +36,39 @@ public sealed class DiscoveryService : IDiscoveryService
         }
 
         return best with { Probes = probes };
+    }
+
+    private static async Task<DeviceDetectionResult> ProbeDriverAsync(
+        IDeviceDriver driver,
+        ProbeRequest request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await driver.ProbeAsync(request, cancellationToken)
+                .ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            var port = request.Ports.FirstOrDefault();
+
+            return new DeviceDetectionResult(
+                request.Address,
+                Port: null,
+                Probes:
+                [
+                    new ProtocolProbeResult(
+                        driver.DriverName,
+                        port == 0 ? null : port,
+                        Succeeded: false,
+                        Evidence: null,
+                        Error: ex.Message)
+                ],
+                RecommendedDriver: null,
+                Confidence: 0,
+                Identity: null,
+                Capabilities: []);
+        }
     }
 
     private static DeviceDetectionResult NoMatch(
