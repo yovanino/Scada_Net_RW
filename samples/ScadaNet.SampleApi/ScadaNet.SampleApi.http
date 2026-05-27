@@ -191,7 +191,22 @@ Accept: application/json
 
 ###
 
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/line1-plc/polling/groups/summary
+Accept: application/json
+
+###
+
 GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/polling/status/line1-fast
+Accept: application/json
+
+###
+
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/connections/pool
+Accept: application/json
+
+###
+
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/connections/pool/line1-plc
 Accept: application/json
 
 ###

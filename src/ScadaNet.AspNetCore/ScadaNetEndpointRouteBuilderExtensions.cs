@@ -196,6 +196,18 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             return Results.Ok(connections.GetStatus());
         });
 
+        group.MapGet("/connections/pool/{name}", (
+            string name,
+            IDeviceConnectionPool connections) =>
+        {
+            return connections.TryGetStatus(name, out var status)
+                ? Results.Ok(status)
+                : Results.NotFound(new
+                {
+                    Message = $"Device '{name}' has no pooled connection status."
+                });
+        });
+
         group.MapDelete("/connections/pool", async (
             IDeviceConnectionPool connections,
             CancellationToken cancellationToken) =>
@@ -659,6 +671,19 @@ public static class ScadaNetEndpointRouteBuilderExtensions
         group.MapGet("/polling/groups/summary", (IPollingGroupMonitor monitor) =>
         {
             return Results.Ok(monitor.GetAll());
+        });
+
+        group.MapGet("/devices/{name}/polling/groups/summary", (
+            string name,
+            IDeviceRegistry registry,
+            IPollingGroupMonitor monitor) =>
+        {
+            return registry.TryGet(name, out var device)
+                ? Results.Ok(monitor.GetForDevice(device.Name))
+                : Results.NotFound(new
+                {
+                    Message = $"Device '{name}' is not registered."
+                });
         });
 
         group.MapGet("/polling/groups/{groupName}/summary", (
