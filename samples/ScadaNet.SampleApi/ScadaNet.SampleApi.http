@@ -10,6 +10,16 @@ Accept: application/json
 
 ###
 
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/runtime/status
+Accept: application/json
+
+###
+
+GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/runtime/status?attentionCount=5&minimumSeverity=Warning
+Accept: application/json
+
+###
+
 GET {{ScadaNet.SampleApi_HostAddress}}/scadanet/devices/dashboard
 Accept: application/json
 

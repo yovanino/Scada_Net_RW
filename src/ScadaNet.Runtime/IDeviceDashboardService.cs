@@ -14,6 +14,10 @@ public interface IDeviceDashboardService
 
     DeviceDashboardOverview GetOverview();
 
+    ScadaNetRuntimeStatus GetRuntimeStatus(
+        int? attentionCount = null,
+        DeviceDashboardIssueSeverity? minimumSeverity = null);
+
     IReadOnlyList<DeviceDashboardIssue> GetIssues();
 
     IReadOnlyList<DeviceDashboardIssue> GetIssues(DeviceDashboardIssueFilter? filter);

@@ -19,6 +19,16 @@ public static class ScadaNetEndpointRouteBuilderExtensions
             return Results.Ok(registry.Devices);
         });
 
+        group.MapGet("/runtime/status", (
+            int? attentionCount,
+            DeviceDashboardIssueSeverity? minimumSeverity,
+            IDeviceDashboardService dashboards) =>
+        {
+            return Results.Ok(dashboards.GetRuntimeStatus(
+                attentionCount,
+                minimumSeverity));
+        });
+
         group.MapGet("/devices/dashboard", (IDeviceDashboardService dashboards) =>
         {
             return Results.Ok(dashboards.GetAll());

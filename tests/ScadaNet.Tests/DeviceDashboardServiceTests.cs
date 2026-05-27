@@ -426,6 +426,57 @@ public class DeviceDashboardServiceTests
     }
 
     [Fact]
+    public void GetRuntimeStatus_returns_overview_attention_issues_and_write_audit()
+    {
+        var line1 = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        var line2 = new DeviceDefinition("line2-plc", "fake", "127.0.0.2");
+        var registry = new DeviceRegistry([line2, line1]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        var group = new SignalPollingGroupDefinition
+        {
+            Name = "line1-fast",
+            DeviceName = "line1-plc"
+        };
+        statuses.MarkFailure(
+            group,
+            TimeSpan.FromMilliseconds(25),
+            new InvalidOperationException("Line 1 timeout."));
+        var writeAudit = new WriteAuditStore();
+        writeAudit.Add(new WriteAuditRecord(
+            0,
+            DateTimeOffset.UtcNow,
+            new SignalRef("line1-plc", "ResetCommand"),
+            true,
+            Succeeded: false,
+            Error: "PLC rejected write."));
+        using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([group]), statuses),
+            snapshots,
+            new DeviceSignalSnapshotReader(registry, snapshots),
+            writeAudit);
+
+        var status = service.GetRuntimeStatus(
+            attentionCount: 1,
+            minimumSeverity: DeviceDashboardIssueSeverity.Warning);
+
+        Assert.Equal(2, status.Overview.DeviceCount);
+        Assert.True(status.Overview.IssueCount > 0);
+        Assert.Equal(1, status.Overview.WriteAuditIssueCount);
+        var attention = Assert.Single(status.Attention);
+        Assert.Equal("line1-plc", attention.DeviceName);
+        Assert.Contains(status.IssueSummaries, summary =>
+            summary.Source == DeviceDashboardIssueSources.WriteAudit &&
+            summary.WarningIssueCount == 1);
+        Assert.Equal(1, status.WriteAudit.FailedWriteCount);
+        Assert.Equal("PLC rejected write.", status.WriteAudit.LastError);
+    }
+
+    [Fact]
     public void GetSummaries_and_overview_do_not_build_detailed_signal_snapshots()
     {
         var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");

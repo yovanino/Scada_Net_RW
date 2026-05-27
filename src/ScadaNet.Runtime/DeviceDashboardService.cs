@@ -154,6 +154,18 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             summaries.Sum(summary => summary.WriteAuditIssueCount));
     }
 
+    public ScadaNetRuntimeStatus GetRuntimeStatus(
+        int? attentionCount = null,
+        DeviceDashboardIssueSeverity? minimumSeverity = null)
+    {
+        return new ScadaNetRuntimeStatus(
+            GetOverview(),
+            GetAttentionSummaries(attentionCount, minimumSeverity),
+            GetIssueSummaries(new DeviceDashboardIssueFilter(
+                MinimumSeverity: minimumSeverity)),
+            _writeAudit.GetSummary());
+    }
+
     public IReadOnlyList<DeviceDashboardIssue> GetIssues()
     {
         return GetIssues(filter: null);
