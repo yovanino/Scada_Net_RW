@@ -152,6 +152,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             summaries.Sum(summary => summary.CriticalIssueCount),
             summaries.Sum(summary => summary.HealthIssueCount),
             summaries.Sum(summary => summary.ConnectionIssueCount),
+            summaries.Sum(summary => summary.ConnectionCloseCount),
             summaries.Sum(summary => summary.PollingIssueCount),
             summaries.Sum(summary => summary.WriteAuditIssueCount));
     }
@@ -379,6 +380,7 @@ public sealed class DeviceDashboardService : IDeviceDashboardService
             issues.Count(issue => issue.Severity == DeviceDashboardIssueSeverity.Critical),
             CountSource(issues, DeviceDashboardIssueSources.Health),
             CountSource(issues, DeviceDashboardIssueSources.Connection),
+            connection?.CloseCount ?? 0,
             CountSource(issues, DeviceDashboardIssueSources.Polling),
             CountSource(issues, DeviceDashboardIssueSources.WriteAudit),
             health.LastSnapshotTimestamp,

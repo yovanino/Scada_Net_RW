@@ -127,6 +127,7 @@ public class DeviceDashboardServiceTests
         Assert.Equal(0, line1Summary.IssueCount);
         Assert.Equal(0, line1Summary.HealthIssueCount);
         Assert.Equal(0, line1Summary.ConnectionIssueCount);
+        Assert.Equal(0, line1Summary.ConnectionCloseCount);
         Assert.Equal(0, line1Summary.PollingIssueCount);
         Assert.Equal(0, line1Summary.WriteAuditIssueCount);
 
@@ -139,6 +140,7 @@ public class DeviceDashboardServiceTests
         Assert.Equal(1, line2Summary.WarningIssueCount);
         Assert.Equal(1, line2Summary.HealthIssueCount);
         Assert.Equal(0, line2Summary.ConnectionIssueCount);
+        Assert.Equal(0, line2Summary.ConnectionCloseCount);
         Assert.Equal(0, line2Summary.PollingIssueCount);
         Assert.Equal(0, line2Summary.WriteAuditIssueCount);
     }
@@ -696,8 +698,37 @@ public class DeviceDashboardServiceTests
         Assert.Equal(0, overview.CriticalIssueCount);
         Assert.Equal(1, overview.HealthIssueCount);
         Assert.Equal(0, overview.ConnectionIssueCount);
+        Assert.Equal(0, overview.ConnectionCloseCount);
         Assert.Equal(0, overview.PollingIssueCount);
         Assert.Equal(0, overview.WriteAuditIssueCount);
+    }
+
+    [Fact]
+    public async Task GetOverview_counts_connection_closes()
+    {
+        var device = new DeviceDefinition("line1-plc", "fake", "127.0.0.1");
+        var registry = new DeviceRegistry([device]);
+        var snapshots = new SignalSnapshotStore();
+        var statuses = new PollingStatusStore();
+        await using var connections = new DeviceConnectionPool(new FakeConnectionFactory());
+        await using (await connections.RentAsync("line1-plc"))
+        {
+        }
+
+        await connections.CloseAsync("line1-plc");
+
+        var service = new DeviceDashboardService(
+            registry,
+            new DeviceHealthService(registry, snapshots, statuses),
+            connections,
+            new PollingGroupMonitor(new PollingGroupRegistry([]), statuses),
+            snapshots,
+            new DeviceSignalSnapshotReader(registry, snapshots));
+
+        var overview = service.GetOverview();
+
+        Assert.Equal(0, overview.ActiveConnectionCount);
+        Assert.Equal(1, overview.ConnectionCloseCount);
     }
 
     [Fact]

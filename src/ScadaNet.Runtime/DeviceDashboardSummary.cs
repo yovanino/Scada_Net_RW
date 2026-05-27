@@ -16,6 +16,7 @@ public sealed record DeviceDashboardSummary(
     int CriticalIssueCount,
     int HealthIssueCount,
     int ConnectionIssueCount,
+    long ConnectionCloseCount,
     int PollingIssueCount,
     int WriteAuditIssueCount,
     DateTimeOffset? LastSnapshotTimestamp,
