@@ -48,6 +48,8 @@ public class EtherNetIpDiscoveryDriverTests
 
         Assert.Equal("EtherNetIp", result.RecommendedDriver);
         Assert.Equal(port, result.Port);
+        Assert.Equal("TCP", result.Transport);
+        Assert.Equal("Explicit", result.MessagingMode);
         Assert.True(result.Confidence > 0.9);
         Assert.NotNull(result.Identity);
         Assert.Equal("Rockwell Automation", result.Identity.VendorName);
@@ -58,6 +60,9 @@ public class EtherNetIpDiscoveryDriverTests
         Assert.Equal("1", result.Identity.StateCode);
         Assert.Contains("ExplicitMessaging", result.Capabilities);
         Assert.Contains(result.Probes, probe => probe.Succeeded);
+        Assert.Contains(result.Probes, probe =>
+            probe.Transport == "TCP" &&
+            probe.MessagingMode == "Explicit");
         Assert.All(result.Probes, probe => Assert.NotNull(probe.Duration));
         Assert.NotNull(result.Duration);
 

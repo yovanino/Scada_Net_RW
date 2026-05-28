@@ -10,4 +10,6 @@ public sealed record DeviceDetectionResult(
     double Confidence,
     DeviceIdentity? Identity,
     IReadOnlyList<string> Capabilities,
-    TimeSpan? Duration = null);
+    TimeSpan? Duration = null,
+    string? Transport = null,
+    string? MessagingMode = null);

@@ -6,4 +6,6 @@ public sealed record ProtocolProbeResult(
     bool Succeeded,
     string? Evidence,
     string? Error,
-    TimeSpan? Duration = null);
+    TimeSpan? Duration = null,
+    string? Transport = null,
+    string? MessagingMode = null);

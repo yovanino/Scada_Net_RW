@@ -76,7 +76,9 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
                         Succeeded: false,
                         Evidence: "Device responded to ListIdentity but returned no identity items.",
                         Error: null,
-                        Duration: Stopwatch.GetElapsedTime(startedAt)));
+                        Duration: Stopwatch.GetElapsedTime(startedAt),
+                        Transport: KnownTransportProtocols.Tcp,
+                        MessagingMode: KnownMessagingModes.Explicit));
                     continue;
                 }
 
@@ -86,7 +88,9 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
                     Succeeded: true,
                     Evidence: $"ListIdentity returned '{identity.ProductName}'.",
                     Error: null,
-                    Duration: Stopwatch.GetElapsedTime(startedAt)));
+                    Duration: Stopwatch.GetElapsedTime(startedAt),
+                    Transport: KnownTransportProtocols.Tcp,
+                    MessagingMode: KnownMessagingModes.Explicit));
 
                 return new DeviceDetectionResult(
                     request.Address,
@@ -96,7 +100,9 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
                     Confidence: 0.95,
                     Identity: ToDeviceIdentity(identity),
                     Capabilities: Capabilities,
-                    Duration: Stopwatch.GetElapsedTime(detectionStartedAt));
+                    Duration: Stopwatch.GetElapsedTime(detectionStartedAt),
+                    Transport: KnownTransportProtocols.Tcp,
+                    MessagingMode: KnownMessagingModes.Explicit);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -106,7 +112,9 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
                     Succeeded: false,
                     Evidence: null,
                     Error: ex.Message,
-                    Duration: Stopwatch.GetElapsedTime(startedAt)));
+                    Duration: Stopwatch.GetElapsedTime(startedAt),
+                    Transport: KnownTransportProtocols.Tcp,
+                    MessagingMode: KnownMessagingModes.Explicit));
             }
         }
 

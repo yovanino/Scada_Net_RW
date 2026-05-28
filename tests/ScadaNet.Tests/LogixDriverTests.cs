@@ -34,10 +34,14 @@ public class LogixDriverTests
 
         Assert.Equal(0, result.Confidence);
         Assert.Null(result.RecommendedDriver);
+        Assert.Equal("TCP", result.Transport);
+        Assert.Equal("Explicit", result.MessagingMode);
         Assert.NotNull(result.Duration);
         Assert.Contains(result.Probes, probe =>
             probe.Protocol == "Logix" &&
             !probe.Succeeded &&
+            probe.Transport == "TCP" &&
+            probe.MessagingMode == "Explicit" &&
             probe.Duration.HasValue);
     }
 

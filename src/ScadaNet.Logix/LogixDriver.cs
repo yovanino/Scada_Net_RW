@@ -68,11 +68,15 @@ public sealed class LogixDriver : IDeviceDriver, IDeviceDriverMetadata
                 Succeeded: false,
                 Evidence: "Logix uses EtherNet/IP discovery before tag access.",
                 Error: null,
-                Duration: duration)],
+                Duration: duration,
+                Transport: KnownTransportProtocols.Tcp,
+                MessagingMode: KnownMessagingModes.Explicit)],
             RecommendedDriver: null,
             Confidence: 0,
             Identity: null,
             Capabilities: [],
-            Duration: duration));
+            Duration: duration,
+            Transport: KnownTransportProtocols.Tcp,
+            MessagingMode: KnownMessagingModes.Explicit));
     }
 }
