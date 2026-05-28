@@ -1,7 +1,9 @@
+using ScadaNet.Protocols;
+
 namespace ScadaNet.EtherNetIp;
 
 public static class EtherNetIpDefaults
 {
-    public const int ExplicitMessagingPort = 44818;
-    public const int ImplicitMessagingPort = 2222;
+    public const int ExplicitMessagingPort = KnownProtocolPorts.EtherNetIpExplicitMessaging;
+    public const int ImplicitMessagingPort = KnownProtocolPorts.EtherNetIpImplicitMessaging;
 }
