@@ -8,11 +8,15 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
 {
     public string DriverName => "EtherNetIp";
 
-    public string ProtocolFamily => "EtherNet/IP";
+    public string ProtocolFamily => KnownProtocolFamilies.EtherNetIp;
 
     public IReadOnlyList<int> DefaultPorts { get; } = [EtherNetIpDefaults.ExplicitMessagingPort];
 
-    public IReadOnlyList<string> Capabilities { get; } = ["ReadIdentity", "ExplicitMessaging"];
+    public IReadOnlyList<string> Capabilities { get; } =
+    [
+        KnownDiscoveryCapabilities.ReadIdentity,
+        KnownDiscoveryCapabilities.ExplicitMessaging
+    ];
 
     public ValueTask<IDeviceConnection> ConnectAsync(
         DeviceConnectionOptions options,
@@ -52,7 +56,7 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
                 if (identity is null)
                 {
                     probes.Add(new ProtocolProbeResult(
-                        "EtherNet/IP",
+                        KnownProtocolFamilies.EtherNetIp,
                         port,
                         Succeeded: false,
                         Evidence: "Device responded to ListIdentity but returned no identity items.",
@@ -62,7 +66,7 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
                 }
 
                 probes.Add(new ProtocolProbeResult(
-                    "EtherNet/IP",
+                    KnownProtocolFamilies.EtherNetIp,
                     port,
                     Succeeded: true,
                     Evidence: $"ListIdentity returned '{identity.ProductName}'.",
@@ -76,13 +80,13 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
                     RecommendedDriver: DriverName,
                     Confidence: 0.95,
                     Identity: ToDeviceIdentity(identity),
-                    Capabilities: ["ReadIdentity", "ExplicitMessaging"],
+                    Capabilities: Capabilities,
                     Duration: Stopwatch.GetElapsedTime(detectionStartedAt));
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 probes.Add(new ProtocolProbeResult(
-                    "EtherNet/IP",
+                    KnownProtocolFamilies.EtherNetIp,
                     port,
                     Succeeded: false,
                     Evidence: null,

@@ -8,17 +8,17 @@ public sealed class LogixDriver : IDeviceDriver, IDeviceDriverMetadata
 {
     public string DriverName => "Logix";
 
-    public string ProtocolFamily => "EtherNet/IP";
+    public string ProtocolFamily => KnownProtocolFamilies.EtherNetIp;
 
     public IReadOnlyList<int> DefaultPorts { get; } = [EtherNetIp.EtherNetIpDefaults.ExplicitMessagingPort];
 
     public IReadOnlyList<string> Capabilities { get; } =
     [
-        "LogixTags",
-        "Read",
-        "Write",
-        "ReadMany",
-        "Arrays"
+        KnownDiscoveryCapabilities.LogixTags,
+        KnownDiscoveryCapabilities.Read,
+        KnownDiscoveryCapabilities.Write,
+        KnownDiscoveryCapabilities.ReadMany,
+        KnownDiscoveryCapabilities.Arrays
     ];
 
     public ValueTask<IDeviceConnection> ConnectAsync(
