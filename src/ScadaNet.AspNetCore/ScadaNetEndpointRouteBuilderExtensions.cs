@@ -80,24 +80,7 @@ public static class ScadaNetEndpointRouteBuilderExtensions
         group.MapGet("/discovery/drivers", (IEnumerable<IDeviceDriver> drivers) =>
         {
             var result = drivers
-                .Select(driver =>
-                {
-                    var metadata = driver as IDeviceDriverMetadata;
-
-                    return new ScadaNetDiscoveryDriverInfo(
-                        driver.DriverName,
-                        metadata?.ProtocolFamily,
-                        metadata?.Transport,
-                        metadata?.MessagingModes ?? [],
-                        metadata?.DefaultEndpoints
-                            .Select(endpoint => new ScadaNetDiscoveryEndpointInfo(
-                                endpoint.Port,
-                                endpoint.Transport,
-                                endpoint.MessagingMode))
-                            .ToArray() ?? [],
-                        metadata?.DefaultPorts ?? [],
-                        metadata?.Capabilities ?? []);
-                })
+                .Select(ScadaNetDiscoveryDriverInfo.FromDriver)
                 .OrderBy(driver => driver.Name, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
 

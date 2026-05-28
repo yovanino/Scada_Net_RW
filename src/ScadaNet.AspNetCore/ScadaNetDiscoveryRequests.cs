@@ -71,7 +71,27 @@ public sealed record ScadaNetDiscoveryDriverInfo(
     IReadOnlyList<string> MessagingModes,
     IReadOnlyList<ScadaNetDiscoveryEndpointInfo> DefaultEndpoints,
     IReadOnlyList<int> DefaultPorts,
-    IReadOnlyList<string> Capabilities);
+    IReadOnlyList<string> Capabilities)
+{
+    public static ScadaNetDiscoveryDriverInfo FromDriver(IDeviceDriver driver)
+    {
+        var metadata = driver as IDeviceDriverMetadata;
+
+        return new ScadaNetDiscoveryDriverInfo(
+            driver.DriverName,
+            metadata?.ProtocolFamily,
+            metadata?.Transport,
+            metadata?.MessagingModes ?? [],
+            metadata?.DefaultEndpoints
+                .Select(endpoint => new ScadaNetDiscoveryEndpointInfo(
+                    endpoint.Port,
+                    endpoint.Transport,
+                    endpoint.MessagingMode))
+                .ToArray() ?? [],
+            metadata?.DefaultPorts ?? [],
+            metadata?.Capabilities ?? []);
+    }
+}
 
 public sealed record ScadaNetDiscoveryEndpointInfo(
     int Port,

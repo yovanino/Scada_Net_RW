@@ -1,4 +1,6 @@
 using ScadaNet.AspNetCore;
+using ScadaNet.Model;
+using ScadaNet.Protocols;
 
 namespace ScadaNet.Tests;
 
@@ -76,5 +78,79 @@ public class ScadaNetDiscoveryRequestsTests
         var error = Assert.Throws<ArgumentOutOfRangeException>(request.ToProbeRequest);
 
         Assert.Contains("Discovery timeout must be greater than zero", error.Message);
+    }
+
+    [Fact]
+    public void DriverInfo_from_driver_maps_protocol_metadata_for_apis()
+    {
+        var info = ScadaNetDiscoveryDriverInfo.FromDriver(new TestMetadataDriver());
+
+        Assert.Equal("TestDriver", info.Name);
+        Assert.Equal("EtherNet/IP", info.ProtocolFamily);
+        Assert.Equal("TCP", info.Transport);
+        Assert.Equal(["Explicit"], info.MessagingModes);
+        Assert.Equal(
+            [new ScadaNetDiscoveryEndpointInfo(44818, "TCP", "Explicit")],
+            info.DefaultEndpoints);
+        Assert.Equal([44818], info.DefaultPorts);
+        Assert.Equal(["Read"], info.Capabilities);
+    }
+
+    [Fact]
+    public void DriverInfo_from_driver_handles_drivers_without_metadata()
+    {
+        var info = ScadaNetDiscoveryDriverInfo.FromDriver(new TestDriver());
+
+        Assert.Equal("TestDriver", info.Name);
+        Assert.Null(info.ProtocolFamily);
+        Assert.Null(info.Transport);
+        Assert.Empty(info.MessagingModes);
+        Assert.Empty(info.DefaultEndpoints);
+        Assert.Empty(info.DefaultPorts);
+        Assert.Empty(info.Capabilities);
+    }
+
+    private class TestDriver : IDeviceDriver
+    {
+        public string DriverName => "TestDriver";
+
+        public ValueTask<IDeviceConnection> ConnectAsync(
+            DeviceConnectionOptions options,
+            CancellationToken cancellationToken = default)
+        {
+            throw new NotSupportedException();
+        }
+
+        public ValueTask<DeviceDetectionResult> ProbeAsync(
+            ProbeRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            return ValueTask.FromResult(new DeviceDetectionResult(
+                request.Address,
+                Port: null,
+                Probes: [],
+                RecommendedDriver: null,
+                Confidence: 0,
+                Identity: null,
+                Capabilities: []));
+        }
+    }
+
+    private sealed class TestMetadataDriver : TestDriver, IDeviceDriverMetadata
+    {
+        public string ProtocolFamily => KnownProtocolFamilies.EtherNetIp;
+
+        public string Transport => KnownTransportProtocols.Tcp;
+
+        public IReadOnlyList<string> MessagingModes { get; } = [KnownMessagingModes.Explicit];
+
+        public IReadOnlyList<ProtocolEndpointMetadata> DefaultEndpoints { get; } =
+        [
+            new(44818, KnownTransportProtocols.Tcp, KnownMessagingModes.Explicit)
+        ];
+
+        public IReadOnlyList<int> DefaultPorts { get; } = [44818];
+
+        public IReadOnlyList<string> Capabilities { get; } = [KnownDiscoveryCapabilities.Read];
     }
 }
