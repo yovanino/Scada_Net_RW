@@ -89,6 +89,12 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                         metadata?.ProtocolFamily,
                         metadata?.Transport,
                         metadata?.MessagingModes ?? [],
+                        metadata?.DefaultEndpoints
+                            .Select(endpoint => new ScadaNetDiscoveryEndpointInfo(
+                                endpoint.Port,
+                                endpoint.Transport,
+                                endpoint.MessagingMode))
+                            .ToArray() ?? [],
                         metadata?.DefaultPorts ?? [],
                         metadata?.Capabilities ?? []);
                 })

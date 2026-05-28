@@ -8,6 +8,8 @@ public interface IDeviceDriverMetadata
 
     IReadOnlyList<string> MessagingModes { get; }
 
+    IReadOnlyList<ProtocolEndpointMetadata> DefaultEndpoints { get; }
+
     IReadOnlyList<int> DefaultPorts { get; }
 
     IReadOnlyList<string> Capabilities { get; }

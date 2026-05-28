@@ -69,5 +69,11 @@ public sealed record ScadaNetDiscoveryDriverInfo(
     string? ProtocolFamily,
     string? Transport,
     IReadOnlyList<string> MessagingModes,
+    IReadOnlyList<ScadaNetDiscoveryEndpointInfo> DefaultEndpoints,
     IReadOnlyList<int> DefaultPorts,
     IReadOnlyList<string> Capabilities);
+
+public sealed record ScadaNetDiscoveryEndpointInfo(
+    int Port,
+    string Transport,
+    string? MessagingMode);

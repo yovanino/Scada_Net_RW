@@ -17,6 +17,14 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
         KnownMessagingModes.Explicit
     ];
 
+    public IReadOnlyList<ProtocolEndpointMetadata> DefaultEndpoints { get; } =
+    [
+        new(
+            EtherNetIpDefaults.ExplicitMessagingPort,
+            KnownTransportProtocols.Tcp,
+            KnownMessagingModes.Explicit)
+    ];
+
     public IReadOnlyList<int> DefaultPorts { get; } = [EtherNetIpDefaults.ExplicitMessagingPort];
 
     public IReadOnlyList<string> Capabilities { get; } =

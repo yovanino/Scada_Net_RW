@@ -14,6 +14,9 @@ public class LogixDriverTests
         Assert.Equal("EtherNet/IP", metadata.ProtocolFamily);
         Assert.Equal("TCP", metadata.Transport);
         Assert.Equal(["Explicit"], metadata.MessagingModes);
+        Assert.Equal(
+            [new ProtocolEndpointMetadata(ScadaNet.EtherNetIp.EtherNetIpDefaults.ExplicitMessagingPort, "TCP", "Explicit")],
+            metadata.DefaultEndpoints);
         Assert.Equal([ScadaNet.EtherNetIp.EtherNetIpDefaults.ExplicitMessagingPort], metadata.DefaultPorts);
         Assert.Contains("LogixTags", metadata.Capabilities);
         Assert.Contains("ReadMany", metadata.Capabilities);
