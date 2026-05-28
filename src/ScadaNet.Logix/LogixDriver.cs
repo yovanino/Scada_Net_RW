@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ScadaNet.Model;
 using ScadaNet.Protocols;
 
@@ -38,6 +39,9 @@ public sealed class LogixDriver : IDeviceDriver, IDeviceDriverMetadata
         ProbeRequest request,
         CancellationToken cancellationToken = default)
     {
+        var startedAt = Stopwatch.GetTimestamp();
+        var duration = Stopwatch.GetElapsedTime(startedAt);
+
         return ValueTask.FromResult(new DeviceDetectionResult(
             request.Address,
             Port: null,
@@ -46,10 +50,12 @@ public sealed class LogixDriver : IDeviceDriver, IDeviceDriverMetadata
                 Port: null,
                 Succeeded: false,
                 Evidence: "Logix uses EtherNet/IP discovery before tag access.",
-                Error: null)],
+                Error: null,
+                Duration: duration)],
             RecommendedDriver: null,
             Confidence: 0,
             Identity: null,
-            Capabilities: []));
+            Capabilities: [],
+            Duration: duration));
     }
 }

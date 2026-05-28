@@ -17,6 +17,25 @@ public class LogixDriverTests
     }
 
     [Fact]
+    public async Task ProbeAsync_returns_explanatory_result_with_duration()
+    {
+        var driver = new LogixDriver();
+
+        var result = await driver.ProbeAsync(new ProbeRequest(
+            "192.168.0.10",
+            [44818],
+            TimeSpan.FromSeconds(1)));
+
+        Assert.Equal(0, result.Confidence);
+        Assert.Null(result.RecommendedDriver);
+        Assert.NotNull(result.Duration);
+        Assert.Contains(result.Probes, probe =>
+            probe.Protocol == "Logix" &&
+            !probe.Succeeded &&
+            probe.Duration.HasValue);
+    }
+
+    [Fact]
     public async Task ConnectAsync_returns_logix_device_connection()
     {
         var driver = new LogixDriver();

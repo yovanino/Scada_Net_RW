@@ -23,6 +23,7 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
         ProbeRequest request,
         CancellationToken cancellationToken = default)
     {
+        var detectionStartedAt = Stopwatch.GetTimestamp();
         var ports = request.Ports.Count == 0
             ? DefaultPorts
             : request.Ports;
@@ -73,7 +74,8 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
                     RecommendedDriver: DriverName,
                     Confidence: 0.95,
                     Identity: ToDeviceIdentity(identity),
-                    Capabilities: ["ReadIdentity", "ExplicitMessaging"]);
+                    Capabilities: ["ReadIdentity", "ExplicitMessaging"],
+                    Duration: Stopwatch.GetElapsedTime(detectionStartedAt));
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -94,7 +96,8 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
             RecommendedDriver: null,
             Confidence: 0,
             Identity: null,
-            Capabilities: []);
+            Capabilities: [],
+            Duration: Stopwatch.GetElapsedTime(detectionStartedAt));
     }
 
     private static DeviceIdentity ToDeviceIdentity(EtherNetIpIdentity identity)

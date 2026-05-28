@@ -53,6 +53,7 @@ public class EtherNetIpDiscoveryDriverTests
         Assert.Contains("ExplicitMessaging", result.Capabilities);
         Assert.Contains(result.Probes, probe => probe.Succeeded);
         Assert.All(result.Probes, probe => Assert.NotNull(probe.Duration));
+        Assert.NotNull(result.Duration);
 
         await server;
     }
