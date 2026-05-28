@@ -33,4 +33,11 @@ public class KnownProtocolMetadataTests
         Assert.Equal("TCP", KnownTransportProtocols.Tcp);
         Assert.Equal("UDP", KnownTransportProtocols.Udp);
     }
+
+    [Fact]
+    public void Known_messaging_modes_include_ethernet_ip_modes()
+    {
+        Assert.Equal("Explicit", KnownMessagingModes.Explicit);
+        Assert.Equal("Implicit", KnownMessagingModes.Implicit);
+    }
 }

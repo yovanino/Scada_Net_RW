@@ -6,6 +6,8 @@ public interface IDeviceDriverMetadata
 
     string Transport { get; }
 
+    IReadOnlyList<string> MessagingModes { get; }
+
     IReadOnlyList<int> DefaultPorts { get; }
 
     IReadOnlyList<string> Capabilities { get; }

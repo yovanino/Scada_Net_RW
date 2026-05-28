@@ -88,6 +88,7 @@ public static class ScadaNetEndpointRouteBuilderExtensions
                         driver.DriverName,
                         metadata?.ProtocolFamily,
                         metadata?.Transport,
+                        metadata?.MessagingModes ?? [],
                         metadata?.DefaultPorts ?? [],
                         metadata?.Capabilities ?? []);
                 })

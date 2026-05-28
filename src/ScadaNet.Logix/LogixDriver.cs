@@ -12,6 +12,11 @@ public sealed class LogixDriver : IDeviceDriver, IDeviceDriverMetadata
 
     public string Transport => KnownTransportProtocols.Tcp;
 
+    public IReadOnlyList<string> MessagingModes { get; } =
+    [
+        KnownMessagingModes.Explicit
+    ];
+
     public IReadOnlyList<int> DefaultPorts { get; } = [EtherNetIp.EtherNetIpDefaults.ExplicitMessagingPort];
 
     public IReadOnlyList<string> Capabilities { get; } =
