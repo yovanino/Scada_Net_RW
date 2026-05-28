@@ -10,6 +10,8 @@ public sealed class EtherNetIpDiscoveryDriver : IDeviceDriver, IDeviceDriverMeta
 
     public string ProtocolFamily => KnownProtocolFamilies.EtherNetIp;
 
+    public string Transport => KnownTransportProtocols.Tcp;
+
     public IReadOnlyList<int> DefaultPorts { get; } = [EtherNetIpDefaults.ExplicitMessagingPort];
 
     public IReadOnlyList<string> Capabilities { get; } =

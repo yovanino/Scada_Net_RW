@@ -14,6 +14,7 @@ public class EtherNetIpDiscoveryDriverTests
             new EtherNetIpDiscoveryDriver());
 
         Assert.Equal("EtherNet/IP", metadata.ProtocolFamily);
+        Assert.Equal("TCP", metadata.Transport);
         Assert.Equal([EtherNetIpDefaults.ExplicitMessagingPort], metadata.DefaultPorts);
         Assert.Contains("ReadIdentity", metadata.Capabilities);
         Assert.Contains("ExplicitMessaging", metadata.Capabilities);

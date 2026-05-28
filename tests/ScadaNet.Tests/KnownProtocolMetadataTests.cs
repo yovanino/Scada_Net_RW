@@ -26,4 +26,11 @@ public class KnownProtocolMetadataTests
         Assert.Equal(8883, KnownProtocolPorts.MqttTls);
         Assert.Equal(102, KnownProtocolPorts.SiemensS7);
     }
+
+    [Fact]
+    public void Known_transport_protocols_include_tcp_and_udp()
+    {
+        Assert.Equal("TCP", KnownTransportProtocols.Tcp);
+        Assert.Equal("UDP", KnownTransportProtocols.Udp);
+    }
 }
