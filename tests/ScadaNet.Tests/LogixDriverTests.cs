@@ -11,6 +11,7 @@ public class LogixDriverTests
         var metadata = Assert.IsAssignableFrom<IDeviceDriverMetadata>(
             new LogixDriver());
 
+        Assert.Equal("EtherNet/IP", metadata.ProtocolFamily);
         Assert.Equal([ScadaNet.EtherNetIp.EtherNetIpDefaults.ExplicitMessagingPort], metadata.DefaultPorts);
         Assert.Contains("LogixTags", metadata.Capabilities);
         Assert.Contains("ReadMany", metadata.Capabilities);

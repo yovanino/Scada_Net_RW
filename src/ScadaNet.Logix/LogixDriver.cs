@@ -8,6 +8,8 @@ public sealed class LogixDriver : IDeviceDriver, IDeviceDriverMetadata
 {
     public string DriverName => "Logix";
 
+    public string ProtocolFamily => "EtherNet/IP";
+
     public IReadOnlyList<int> DefaultPorts { get; } = [EtherNetIp.EtherNetIpDefaults.ExplicitMessagingPort];
 
     public IReadOnlyList<string> Capabilities { get; } =

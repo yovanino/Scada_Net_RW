@@ -86,6 +86,7 @@ public static class ScadaNetEndpointRouteBuilderExtensions
 
                     return new ScadaNetDiscoveryDriverInfo(
                         driver.DriverName,
+                        metadata?.ProtocolFamily,
                         metadata?.DefaultPorts ?? [],
                         metadata?.Capabilities ?? []);
                 })

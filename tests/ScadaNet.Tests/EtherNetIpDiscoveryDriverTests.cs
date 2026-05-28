@@ -13,6 +13,7 @@ public class EtherNetIpDiscoveryDriverTests
         var metadata = Assert.IsAssignableFrom<IDeviceDriverMetadata>(
             new EtherNetIpDiscoveryDriver());
 
+        Assert.Equal("EtherNet/IP", metadata.ProtocolFamily);
         Assert.Equal([EtherNetIpDefaults.ExplicitMessagingPort], metadata.DefaultPorts);
         Assert.Contains("ReadIdentity", metadata.Capabilities);
         Assert.Contains("ExplicitMessaging", metadata.Capabilities);
